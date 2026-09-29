@@ -1028,6 +1028,8 @@ export interface components {
         };
         /** UnavailableMetric */
         UnavailableMetric: {
+            /** Reason Key */
+            reason_key?: string | null;
             /** Metric Id */
             metric_id: string;
             /** Missing Fields */

@@ -7,6 +7,7 @@ from bi.metrics.models import MetricDefinition
 class MetricRegistry:
     def __init__(self) -> None:
         self._metrics: dict[str, MetricDefinition] = {}
+        self.blocked: dict[str, str] = {}
 
     def register(self, metric: MetricDefinition) -> None:
         if metric.id in self._metrics:

@@ -67,12 +67,14 @@ class ComparisonResult(BaseModel, frozen=True):
 
 
 class UnavailableMetric(BaseModel, frozen=True):
+    reason_key: str | None = None
     metric_id: str
     missing_fields: list[str]
     label_key: str | None = None
 
 
 class MetricAvailability(BaseModel, frozen=True):
+    reason_key: str | None = None
     available: bool
     missing_fields: list[str] = Field(default_factory=list)
 

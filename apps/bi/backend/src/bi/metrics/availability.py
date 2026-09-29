@@ -8,6 +8,7 @@ def resolve_availability(registry: MetricRegistry, available_fields: set[str]) -
     resolved: dict[str, MetricAvailability] = {}
     for metric in registry.all():
         missing = ["|".join(sorted(options)) for options in registry.requirement_options(metric.id) if not options.intersection(available_fields)]
-        resolved[metric.id] = MetricAvailability(available=not missing, missing_fields=missing)
+        reason = registry.blocked.get(metric.id)
+        resolved[metric.id] = MetricAvailability(available=not missing and reason is None, missing_fields=missing, reason_key=reason)
     return resolved
 

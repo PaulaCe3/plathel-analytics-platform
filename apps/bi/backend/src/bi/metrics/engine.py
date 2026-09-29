@@ -1,6 +1,7 @@
 """Metric evaluation over the backend-neutral DataEngine contract."""
 
 from dataclasses import dataclass
+import pyarrow.parquet as pq
 from pathlib import Path
 
 from analytics_core.engine.base import DataEngine
@@ -36,7 +37,7 @@ class MetricEngine:
         metric = self.registry.get(metric_id)
         availability = resolve_availability(self.registry, available_fields)[metric_id]
         if not availability.available:
-            return MetricResult(metric_id=metric.id, label_key=metric.label_key, status="unavailable", format=metric.output)
+            return MetricResult(metric_id=metric.id, label_key=metric.label_key, status="unavailable", format=metric.output, warnings=[MetricWarning(code="SEMANTICS_REQUIRED", message_key=availability.reason_key)] if availability.reason_key else [])
         selected_filters = filters or []
         if metric.currency_sensitive and "currency" in available_fields and self._has_mixed_currency(canonical_path, selected_filters):
             return MetricResult(
@@ -46,12 +47,33 @@ class MetricEngine:
                 format=metric.output,
                 warnings=[MetricWarning(code="MIXED_CURRENCY", message_key="warning.mixed_currency")],
             )
+        # Compound expressions must aggregate exactly the same valid population.
+        excluded = None
+        if isinstance(metric.expr, (Ratio, Sub)):
+            valid_filters = list(selected_filters)
+            columns = set(pq.read_schema(canonical_path).names)
+            for choices in self.registry.requirement_options(metric_id):
+                field = next((field for field in sorted(choices) if field in available_fields), None)
+                if field:
+                    valid_filters.append(FilterClause(field=field, op="not_in", values=[None, ""]))
+                    if f"_valid__{field}" in columns:
+                        valid_filters.append(FilterClause(field=f"_valid__{field}", op="in", values=[True]))
+            count_query = [MeasureSpec(alias="rows", aggregation="count")]
+            before = self.data_engine.run_query(canonical_path, QuerySpec(measures=count_query, filters=selected_filters)).rows[0]["rows"]
+            after = self.data_engine.run_query(canonical_path, QuerySpec(measures=count_query, filters=valid_filters)).rows[0]["rows"]
+            excluded = int(before - after)
+            selected_filters = valid_filters
         value = self._evaluate_expr(canonical_path, metric.expr, available_fields, selected_filters, set())
+        output = metric.output
+        if output.type == "currency" and "currency" in available_fields:
+            currencies = self.data_engine.run_query(canonical_path, QuerySpec(measures=[MeasureSpec(alias="rows", aggregation="count")], group_by=[GroupBy(field="currency")], filters=[*selected_filters, FilterClause(field="currency", op="not_in", values=[None, ""])], limit=2)).rows
+            if len(currencies) == 1:
+                output = output.model_copy(update={"currency": currencies[0]["currency"]})
         status = "empty" if value.value is None else "ok"
-        return MetricResult(metric_id=metric.id, label_key=metric.label_key, status=status, value=value.value, format=metric.output, excluded_rows=value.excluded_rows, warnings=list(value.warnings))
+        return MetricResult(metric_id=metric.id, label_key=metric.label_key, status=status, value=value.value, format=output, excluded_rows=value.excluded_rows if excluded is None else excluded, warnings=list(value.warnings))
 
     def _has_mixed_currency(self, path: Path, filters: list[FilterClause]) -> bool:
-        query = QuerySpec(measures=[MeasureSpec(alias="rows", aggregation="count")], group_by=[GroupBy(field="currency")], filters=filters, limit=2)
+        query = QuerySpec(measures=[MeasureSpec(alias="rows", aggregation="count")], group_by=[GroupBy(field="currency")], filters=[*filters, FilterClause(field="currency", op="not_in", values=[None, ""])], limit=2)
         result = self.data_engine.run_query(path, query)
         currencies = [row.get("currency") for row in result.rows if row.get("currency") not in (None, "")]
         return len(currencies) > 1

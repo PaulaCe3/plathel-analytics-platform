@@ -6,12 +6,13 @@ from analytics_core.canonical.fields import FieldSpec
 from analytics_core.engine.pandas_impl import PandasDataEngine
 from analytics_core.errors import AppError
 from analytics_core.mapping.models import ColumnDisposition
+from analytics_core.mapping.matcher import normalize_name
 from analytics_core.sessions.store import DatasetSessionStore
 from analytics_core.settings import Settings
 from bi.dashboard.builder import DashboardBuilder
 from bi.dashboard.filters import option_values
 from bi.dashboard.widgets import DashboardRequest, DashboardResponse, FilterOption
-from bi.metrics.universal import UNIVERSAL_METRICS
+from bi.profiles.metrics import build_profile_registry
 from bi.profiles import get_profile
 from bi.profiles.registry import profile_fields
 
@@ -20,7 +21,6 @@ class DashboardService:
     def __init__(self, settings: Settings):
         self.store = DatasetSessionStore(settings.dataset_storage_path, settings.dataset_ttl_minutes)
         self.engine = PandasDataEngine()
-        self.builder = DashboardBuilder(self.engine, UNIVERSAL_METRICS)
 
     def _ready(self, dataset_id: str):
         session = self.store.get(dataset_id)
@@ -34,15 +34,23 @@ class DashboardService:
 
     def _fields(self, session, profile):
         fields = profile_fields(profile)
-        known = {field.id for field in fields}
         custom_kind = {ColumnDisposition.custom_dimension: "dimension", ColumnDisposition.custom_measure: "measure"}
+        column_names = {column.key: column.original_name for column in session.columns}
+        used = set()
         for mapping in session.mappings:
-            if mapping.disposition in custom_kind:
-                matches = [column for column in session.canonical_columns if column.startswith("custom__") and column not in known]
-                if matches:
-                    field_id = matches.pop(0)
-                    fields.append(FieldSpec(id=field_id, label_key=field_id, kind=custom_kind[mapping.disposition], dtype="string" if mapping.disposition == ColumnDisposition.custom_dimension else "decimal", scope="custom"))
-                    known.add(field_id)
+            if mapping.disposition == ColumnDisposition.ignored:
+                continue
+            if mapping.disposition == ColumnDisposition.canonical:
+                used.add(mapping.target_field)
+                continue
+            base = normalize_name(column_names.get(mapping.column_key, mapping.column_key)) or mapping.column_key
+            field_id = f"custom__{base}"
+            if field_id in used:
+                field_id = f"{field_id}__{mapping.column_key}"
+            used.add(field_id)
+            if field_id in session.canonical_columns:
+                kind = custom_kind[mapping.disposition]
+                fields.append(FieldSpec(id=field_id, label_key=field_id, kind=kind, dtype="string" if kind == "dimension" else "decimal", scope="custom"))
         return fields
 
     def dashboard(self, dataset_id: str, request: DashboardRequest) -> DashboardResponse:
@@ -56,7 +64,8 @@ class DashboardService:
         unknown = {clause.field for clause in request.filters} - available
         if unknown:
             raise AppError(code="FILTER_FIELD_INVALID", http_status=422, message="Uno o más filtros usan campos no disponibles.")
-        spec, data, filtered, warnings = self.builder.build(profile=profile, canonical_path=self.store.path(dataset_id, "canonical.parquet"), fields=fields, available=available, filters=request.filters, comparison=request.comparison, time_field=time_field, grain=request.grain, quality=session.quality_summary, row_count=session.canonical_row_count or session.row_count)
+        builder = DashboardBuilder(self.engine, build_profile_registry(profile, session.mappings))
+        spec, data, filtered, warnings = builder.build(profile=profile, canonical_path=self.store.path(dataset_id, "canonical.parquet"), fields=fields, available=available, filters=request.filters, comparison=request.comparison, time_field=time_field, grain=request.grain, quality=session.quality_summary, row_count=session.canonical_row_count or session.row_count)
         return DashboardResponse(spec=spec, data=data, row_count=session.canonical_row_count or session.row_count, filtered_row_count=filtered, warnings=warnings, generated_at=datetime.now(UTC))
 
     def filter_options(self, dataset_id: str, field: str, query: str | None, limit: int) -> list[FilterOption]:

@@ -14,18 +14,23 @@ const labels: Record<string, string> = {
   "section.executive_summary": "Resumen ejecutivo", "section.insights": "Hallazgos", "section.temporal": "Evolución temporal",
   "section.breakdown": "Desgloses", "section.customers": "Clientes", "section.concept_analysis": "Análisis por concepto",
   "section.geography": "Ubicación", "section.channel": "Canales", "section.data_quality": "Calidad de datos",
+  "section.industry_specific": "Análisis específico",
+  "metric.units_sold": "Unidades vendidas", "metric.total_cost": "Costo total", "metric.gross_profit": "Ganancia bruta",
+  "metric.gross_margin_pct": "Margen bruto", "metric.average_discount": "Descuento medio (importe)",
+  "metric.service_hours": "Horas de servicio", "metric.revenue_per_hour": "Ingreso por hora",
+  "metric.total_nights": "Noches totales", "metric.adr": "Tarifa diaria promedio", "metric.average_stay": "Estadía media",
   "metric.revenue": "Ingresos", "metric.transactions": "Transacciones", "metric.customers": "Clientes",
   "metric.avg_transaction_value": "Ticket promedio", "metric.quantity": "Cantidad", "metric.avg_unit_price": "Precio unitario promedio",
 };
 
 function title(key: string, terminology: Record<string, string>) {
-  if (key === "field.concept") return terminology.concept ?? "Concepto";
+  if (key.startsWith("field.") && terminology[key.slice(6)]) return terminology[key.slice(6)];
   return labels[key] ?? key.replace(/^field\./, "").replaceAll("_", " ");
 }
 
 function metricValue(metric: Metric) {
   if (metric.value == null) return "—";
-  return new Intl.NumberFormat("es-AR", { style: metric.format.type === "currency" ? "currency" : "decimal", currency: metric.format.currency ?? "ARS", maximumFractionDigits: metric.format.decimals }).format(metric.value);
+  return new Intl.NumberFormat("es-AR", { style: metric.format.type === "currency" ? "currency" : metric.format.type === "percent" ? "percent" : "decimal", currency: metric.format.currency ?? "ARS", maximumFractionDigits: metric.format.decimals }).format(metric.value);
 }
 
 function ErrorState() { return <p className="rounded-xl bg-red-50 p-4 text-sm text-red-700">No pudimos mostrar este bloque.</p>; }
@@ -42,8 +47,8 @@ function WidgetView({ widget, value }: { widget: Widget; value: unknown }) {
   if (["timeseries", "breakdown", "ranking"].includes(widget.type)) return <EChartsBase option={chartOption(value as Chart)} />;
   if (widget.type === "quality") { const q = value as Quality; return <p>{q.total_issues} hallazgos · {q.error_count} errores · {q.warning_count} advertencias</p>; }
   if (widget.type === "insights") {
-    const insights = (value as { insights?: Array<{ id: string; template_key: string; params: Record<string, unknown> }> }).insights ?? [];
-    return <ul className="space-y-2">{insights.map((item) => <li key={item.id} className="rounded-xl bg-amber-50 p-3">{labels[item.template_key] ?? item.template_key}: {JSON.stringify(item.params)}</li>)}</ul>;
+    const insights = (value as { insights?: Array<{ id: string; template_key: string; text?: string; params: Record<string, unknown> }> }).insights ?? [];
+    return <ul className="space-y-2">{insights.map((item) => <li key={item.id} className="rounded-xl bg-amber-50 p-3">{item.text && item.text !== item.template_key ? item.text : `${labels[item.template_key] ?? item.template_key}: ${JSON.stringify(item.params)}`}</li>)}</ul>;
   }
   return <ErrorState />;
 }
