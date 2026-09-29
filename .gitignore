@@ -1,0 +1,36 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+.env
+
+# Node
+node_modules/
+.next/
+*.tsbuildinfo
+.env.local
+
+# Project data
+uploads/
+tmp/
+temp/
+temporary/
+private-datasets/
+datasets/private/
+.cache/
+.data/
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+!.env.example
+
+.pnpm-store/
