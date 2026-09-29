@@ -10,6 +10,7 @@ from analytics_core.cleaning.models import CanonicalBuildResult, CleaningActionS
 from analytics_core.mapping.models import ColumnMapping
 from analytics_core.quality.models import DataQualityReport
 from analytics_core.validation.models import ParseReport, ProfileCheck
+from analytics_core.engine.query import DateCoverage, QueryResult, QuerySpec
 
 
 class DataEngine(Protocol):
@@ -31,3 +32,7 @@ class DataEngine(Protocol):
     def inspect_quality(self, canonical_path: Path, reports: list[ParseReport], profile_checks: list[ProfileCheck]) -> DataQualityReport: ...
 
     def create_cleaning_plan(self, canonical_path: Path, reports: list[ParseReport], quality: DataQualityReport) -> CleaningPlan: ...
+
+    def run_query(self, canonical_path: Path, query: QuerySpec) -> QueryResult: ...
+
+    def date_coverage(self, canonical_path: Path, field: str) -> DateCoverage: ...

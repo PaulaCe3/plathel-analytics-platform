@@ -20,6 +20,9 @@ from analytics_core.engine.pandas_impl.transforms import apply_actions
 from analytics_core.mapping.models import ColumnMapping
 from analytics_core.quality.models import DataQualityReport
 from analytics_core.validation.models import ParseReport, ProfileCheck
+from analytics_core.engine.query import DateCoverage, QueryResult, QuerySpec
+from analytics_core.engine.pandas_impl.query import date_coverage as query_date_coverage
+from analytics_core.engine.pandas_impl.query import run_query as execute_query
 
 
 def _stringify(value: Any) -> str:
@@ -188,3 +191,9 @@ class PandasDataEngine:
 
     def create_cleaning_plan(self, canonical_path: Path, reports: list[ParseReport], quality: DataQualityReport) -> CleaningPlan:
         return cleaning_plan(canonical_path, reports, quality)
+
+    def run_query(self, canonical_path: Path, query: QuerySpec) -> QueryResult:
+        return execute_query(canonical_path, query)
+
+    def date_coverage(self, canonical_path: Path, field: str) -> DateCoverage:
+        return query_date_coverage(canonical_path, field)
