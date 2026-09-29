@@ -42,7 +42,7 @@ class DatasetSessionStore:
         return session
 
     def path(self, dataset_id: str, filename: str) -> Path:
-        if filename not in {"source.bin", "raw.parquet"}:
+        if filename not in {"source.bin", "raw.parquet", "canonical.parquet"}:
             raise ValueError("invalid session filename")
         return self._directory(dataset_id) / filename
 

@@ -1,0 +1,4 @@
+fecha_compra,articulo,cantidad,importe,costo,moneda
+2026-01-01,  Mate  ,2,150,-20,ARS
+2026-01-01,  Mate  ,2,150,-20,ARS
+fecha mala,Café,-1,texto,30,ARS

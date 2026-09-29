@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 
 from analytics_core.ingestion.models import ColumnMetadata, SourceSettings
 from analytics_core.sessions.models import FileMetadata
+from analytics_core.quality.models import QualitySummary
 
 
 class DatasetResponse(BaseModel):
@@ -24,6 +25,11 @@ class DatasetResponse(BaseModel):
     column_count: int
     columns: list[ColumnMetadata]
     warnings: list[str]
+    has_canonical: bool
+    canonical_row_count: int | None
+    validation_status: str | None
+    quality_summary: QualitySummary | None
+    cleaning_confirmed: bool
 
 
 class DatasetPatch(BaseModel):

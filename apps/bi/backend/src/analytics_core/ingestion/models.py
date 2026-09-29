@@ -11,6 +11,7 @@ class SourceSettings(BaseModel):
     decimal: str | None = None
     thousands: str | None = None
     date_dayfirst: bool | None = None
+    date_format: str | None = None
 
 
 class ColumnMetadata(BaseModel):

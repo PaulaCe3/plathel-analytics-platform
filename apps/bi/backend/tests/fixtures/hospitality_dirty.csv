@@ -1,0 +1,3 @@
+fecha_reserva,check_in,check_out,tipo_habitacion,noches,importe,moneda
+2026-01-01,2026-02-10,2026-02-12,Doble,2,180000,ARS
+2026-01-02,2026-03-10,2026-03-09,Suite,-1,250,USD

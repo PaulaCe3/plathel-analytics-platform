@@ -11,6 +11,15 @@ from analytics_core.errors import AppError
 from analytics_core.ingestion.headers import normalize_headers, stable_column_key
 from analytics_core.ingestion.models import ColumnMetadata, ParseResult, SourceSettings
 from analytics_core.ingestion.sniffing import sniff_csv
+from analytics_core.canonical.derived import DerivedFieldRule
+from analytics_core.canonical.fields import FieldSpec
+from analytics_core.cleaning.models import CanonicalBuildResult, CleaningActionSpec, CleaningPlan
+from analytics_core.engine.pandas_impl.checks import cleaning_plan, inspect
+from analytics_core.engine.pandas_impl.parsers import build_frame, persist_result
+from analytics_core.engine.pandas_impl.transforms import apply_actions
+from analytics_core.mapping.models import ColumnMapping
+from analytics_core.quality.models import DataQualityReport
+from analytics_core.validation.models import ParseReport, ProfileCheck
 
 
 def _stringify(value: Any) -> str:
@@ -158,3 +167,24 @@ class PandasDataEngine:
     def preview(self, parquet_path: Path, rows: int) -> list[dict[str, str | None]]:
         frame = pd.read_parquet(parquet_path).head(rows)
         return [{key: (None if value == "" else str(value)) for key, value in record.items()} for record in frame.to_dict(orient="records")]
+
+    def build_canonical(
+        self,
+        raw_path: Path,
+        destination: Path,
+        mappings: list[ColumnMapping],
+        fields: list[FieldSpec],
+        column_names: dict[str, str],
+        settings: SourceSettings,
+        derived_rules: list[DerivedFieldRule],
+        actions: list[CleaningActionSpec],
+    ) -> CanonicalBuildResult:
+        frame, reports, automatic = build_frame(raw_path, mappings, fields, column_names, settings, derived_rules)
+        frame, selected = apply_actions(frame, actions, len(automatic))
+        return persist_result(frame, destination, reports, [*automatic, *selected])
+
+    def inspect_quality(self, canonical_path: Path, reports: list[ParseReport], profile_checks: list[ProfileCheck]) -> DataQualityReport:
+        return inspect(canonical_path, reports, profile_checks)
+
+    def create_cleaning_plan(self, canonical_path: Path, reports: list[ParseReport], quality: DataQualityReport) -> CleaningPlan:
+        return cleaning_plan(canonical_path, reports, quality)

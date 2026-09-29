@@ -143,6 +143,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/datasets/{dataset_id}/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validate Dataset */
+        post: operations["validate_dataset_api_v1_datasets__dataset_id__validate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/datasets/{dataset_id}/cleaning": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Clean Dataset */
+        put: operations["clean_dataset_api_v1_datasets__dataset_id__cleaning_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/datasets/{dataset_id}/transformations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Transformations */
+        get: operations["get_transformations_api_v1_datasets__dataset_id__transformations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -153,6 +204,62 @@ export interface components {
             file: string;
             /** Industry Id */
             industry_id?: string | null;
+        };
+        /** CleaningActionSpec */
+        CleaningActionSpec: {
+            /**
+             * Id
+             * @enum {string}
+             */
+            id: "trim_whitespace" | "parse_dates" | "parse_numbers" | "drop_empty_columns" | "drop_exact_duplicates" | "drop_rows";
+            /** Params */
+            params?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Destructive
+             * @default false
+             */
+            destructive: boolean;
+            /**
+             * Selected
+             * @default false
+             */
+            selected: boolean;
+            /**
+             * Estimated Rows Affected
+             * @default 0
+             */
+            estimated_rows_affected: number;
+            /**
+             * Estimated Values Affected
+             * @default 0
+             */
+            estimated_values_affected: number;
+            /** Description */
+            description: string;
+        };
+        /** CleaningPlan */
+        CleaningPlan: {
+            /** Actions */
+            actions?: components["schemas"]["CleaningActionSpec"][];
+        };
+        /** CleaningRequest */
+        CleaningRequest: {
+            /** Actions */
+            actions: components["schemas"]["CleaningActionSpec"][];
+        };
+        /** CleaningResponse */
+        CleaningResponse: {
+            /** Dataset Id */
+            dataset_id: string;
+            /** Stage */
+            stage: string;
+            validation: components["schemas"]["ValidationReport"];
+            quality: components["schemas"]["DataQualityReport"];
+            transformation_log: components["schemas"]["TransformationLog"];
+            /** Canonical Row Count */
+            canonical_row_count: number;
         };
         /**
          * ColumnDisposition
@@ -191,6 +298,12 @@ export interface components {
             null_ratio: number;
             /** Approximate Cardinality */
             approximate_cardinality?: number | null;
+        };
+        /** DataQualityReport */
+        DataQualityReport: {
+            /** Issues */
+            issues?: components["schemas"]["Issue"][];
+            summary?: components["schemas"]["QualitySummary"];
         };
         /** DatasetPatch */
         DatasetPatch: {
@@ -240,6 +353,15 @@ export interface components {
             columns: components["schemas"]["ColumnMetadata"][];
             /** Warnings */
             warnings: string[];
+            /** Has Canonical */
+            has_canonical: boolean;
+            /** Canonical Row Count */
+            canonical_row_count: number | null;
+            /** Validation Status */
+            validation_status: string | null;
+            quality_summary: components["schemas"]["QualitySummary"] | null;
+            /** Cleaning Confirmed */
+            cleaning_confirmed: boolean;
         };
         /** FileMetadata */
         FileMetadata: {
@@ -259,6 +381,42 @@ export interface components {
         HealthResponse: {
             /** Status */
             status: string;
+        };
+        /** Issue */
+        Issue: {
+            /** Id */
+            id: string;
+            /** Code */
+            code: string;
+            /**
+             * Scope
+             * @enum {string}
+             */
+            scope: "dataset" | "field" | "row" | "profile";
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "error" | "warning" | "info";
+            /** Message */
+            message: string;
+            /** Field Id */
+            field_id?: string | null;
+            /** Column Key */
+            column_key?: string | null;
+            /** Count */
+            count?: number | null;
+            /** Ratio */
+            ratio?: number | null;
+            /** Sample Row Ids */
+            sample_row_ids?: number[];
+            /** Suggested Action */
+            suggested_action?: string | null;
+            /**
+             * Category
+             * @default validation
+             */
+            category: string;
         };
         /** MappingCandidate */
         MappingCandidate: {
@@ -340,6 +498,25 @@ export interface components {
             /** Languages */
             languages: string[];
         };
+        /** ParseReport */
+        ParseReport: {
+            /** Total Rows */
+            total_rows: number;
+            /** Parsed Rows */
+            parsed_rows: number;
+            /** Invalid Rows */
+            invalid_rows: number;
+            /** Invalid Ratio */
+            invalid_ratio: number;
+            /** Field Id */
+            field_id: string;
+            /** Source Column Key */
+            source_column_key: string;
+            /** Parse Type */
+            parse_type: string;
+            /** Sample Row Ids */
+            sample_row_ids?: number[];
+        };
         /** PreviewResponse */
         PreviewResponse: {
             /** Dataset Id */
@@ -398,6 +575,33 @@ export interface components {
             /** Description */
             description?: string | null;
         };
+        /** QualitySummary */
+        QualitySummary: {
+            /**
+             * Total Issues
+             * @default 0
+             */
+            total_issues: number;
+            /**
+             * Error Count
+             * @default 0
+             */
+            error_count: number;
+            /**
+             * Warning Count
+             * @default 0
+             */
+            warning_count: number;
+            /**
+             * Info Count
+             * @default 0
+             */
+            info_count: number;
+            /** Categories */
+            categories?: {
+                [key: string]: number;
+            };
+        };
         /** SourceSettings */
         SourceSettings: {
             /** Encoding */
@@ -414,6 +618,71 @@ export interface components {
             thousands?: string | null;
             /** Date Dayfirst */
             date_dayfirst?: boolean | null;
+            /** Date Format */
+            date_format?: string | null;
+        };
+        /** Transformation */
+        Transformation: {
+            /** Id */
+            id: string;
+            /** Seq */
+            seq: number;
+            /** Action Id */
+            action_id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "parse" | "normalize" | "derive" | "remove" | "fill";
+            /** Columns */
+            columns?: string[];
+            /** Params */
+            params?: {
+                [key: string]: unknown;
+            };
+            /** Rows Before */
+            rows_before: number;
+            /** Rows After */
+            rows_after: number;
+            /** Rows Affected */
+            rows_affected: number;
+            /** Summary */
+            summary: string;
+            /** Examples */
+            examples?: components["schemas"]["TransformationExample"][];
+            /** Automatic */
+            automatic: boolean;
+            /**
+             * At
+             * Format: date-time
+             */
+            at?: string;
+        };
+        /** TransformationExample */
+        TransformationExample: {
+            /** Row Id */
+            row_id?: number | null;
+            /** Before */
+            before?: string | null;
+            /** After */
+            after?: string | null;
+        };
+        /** TransformationLog */
+        TransformationLog: {
+            /** Transformations */
+            transformations?: components["schemas"]["Transformation"][];
+        };
+        /** ValidateResponse */
+        ValidateResponse: {
+            /** Dataset Id */
+            dataset_id: string;
+            /** Stage */
+            stage: string;
+            validation: components["schemas"]["ValidationReport"];
+            quality: components["schemas"]["DataQualityReport"];
+            cleaning_plan: components["schemas"]["CleaningPlan"];
+            /** Warnings */
+            warnings?: string[];
         };
         /** ValidationError */
         ValidationError: {
@@ -427,6 +696,30 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** ValidationReport */
+        ValidationReport: {
+            /** Valid */
+            valid: boolean;
+            /** Issues */
+            issues?: components["schemas"]["Issue"][];
+            /**
+             * Blocking Count
+             * @default 0
+             */
+            blocking_count: number;
+            /**
+             * Warning Count
+             * @default 0
+             */
+            warning_count: number;
+            /**
+             * Info Count
+             * @default 0
+             */
+            info_count: number;
+            /** Parse Reports */
+            parse_reports?: components["schemas"]["ParseReport"][];
         };
     };
     responses: never;
@@ -742,6 +1035,103 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProfileResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    validate_dataset_api_v1_datasets__dataset_id__validate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dataset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clean_dataset_api_v1_datasets__dataset_id__cleaning_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dataset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CleaningRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CleaningResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_transformations_api_v1_datasets__dataset_id__transformations_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dataset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransformationLog"];
                 };
             };
             /** @description Validation Error */

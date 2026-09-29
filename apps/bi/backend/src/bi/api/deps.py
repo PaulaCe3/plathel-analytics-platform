@@ -8,6 +8,7 @@ from analytics_core.settings import Settings, get_settings
 from bi.services.datasets import DatasetService
 from bi.services.mapping import MappingService
 from bi.services.profiles import ProfileService
+from bi.services.prepare import PrepareService
 
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 
@@ -25,3 +26,10 @@ def get_mapping_service(settings: SettingsDep) -> MappingService:
 
 MappingServiceDep = Annotated[MappingService, Depends(get_mapping_service)]
 ProfileServiceDep = Annotated[ProfileService, Depends(ProfileService)]
+
+
+def get_prepare_service(settings: SettingsDep) -> PrepareService:
+    return PrepareService(settings)
+
+
+PrepareServiceDep = Annotated[PrepareService, Depends(get_prepare_service)]

@@ -4,6 +4,12 @@ from pathlib import Path
 from typing import Protocol
 
 from analytics_core.ingestion.models import ParseResult, SourceSettings
+from analytics_core.canonical.derived import DerivedFieldRule
+from analytics_core.canonical.fields import FieldSpec
+from analytics_core.cleaning.models import CanonicalBuildResult, CleaningActionSpec, CleaningPlan
+from analytics_core.mapping.models import ColumnMapping
+from analytics_core.quality.models import DataQualityReport
+from analytics_core.validation.models import ParseReport, ProfileCheck
 
 
 class DataEngine(Protocol):
@@ -19,3 +25,9 @@ class DataEngine(Protocol):
     ) -> ParseResult: ...
 
     def preview(self, parquet_path: Path, rows: int) -> list[dict[str, str | None]]: ...
+
+    def build_canonical(self, raw_path: Path, destination: Path, mappings: list[ColumnMapping], fields: list[FieldSpec], column_names: dict[str, str], settings: SourceSettings, derived_rules: list[DerivedFieldRule], actions: list[CleaningActionSpec]) -> CanonicalBuildResult: ...
+
+    def inspect_quality(self, canonical_path: Path, reports: list[ParseReport], profile_checks: list[ProfileCheck]) -> DataQualityReport: ...
+
+    def create_cleaning_plan(self, canonical_path: Path, reports: list[ParseReport], quality: DataQualityReport) -> CleaningPlan: ...

@@ -5,6 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from analytics_core.canonical.fields import FieldSpec
+from analytics_core.validation.models import ProfileCheck
 
 
 class ProfileFieldRule(BaseModel, frozen=True):
@@ -19,6 +20,7 @@ class ProfileData(BaseModel, frozen=True):
     terminology: dict[str, dict[str, str]] = Field(default_factory=dict)
     primary_date: str = "date"
     alternate_dates: tuple[str, ...] = ()
+    checks: tuple[ProfileCheck, ...] = ()
 
 
 class IndustryProfile(BaseModel, frozen=True):

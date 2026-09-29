@@ -53,6 +53,7 @@ class DatasetService:
         )
         session.stage = "parsed"
         session.mappings = []
+        self._invalidate_canonical(session)
         session.parsing_status = "complete"
         session.source_settings = result.source_settings
         session.selected_sheet = result.selected_sheet
@@ -100,5 +101,20 @@ class DatasetService:
         session.industry_id = industry_id
         session.mappings = []
         session.stage = "parsed"
+        self._invalidate_canonical(session)
         self.store.save(session)
         return session
+
+    def _invalidate_canonical(self, session: DatasetSession) -> None:
+        self.store.path(session.dataset_id, "canonical.parquet").unlink(missing_ok=True)
+        session.has_canonical = False
+        session.canonical_row_count = None
+        session.canonical_columns = []
+        session.validation_status = None
+        session.validation_report = None
+        session.parse_reports = []
+        session.quality_summary = None
+        session.cleaning_plan = None
+        session.cleaning_actions = []
+        session.cleaning_confirmed = False
+        session.transformation_log.transformations = []

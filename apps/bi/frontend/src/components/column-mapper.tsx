@@ -112,7 +112,7 @@ export function ColumnMapper({ datasetId }: { datasetId: string }) {
       </section>
 
       {view.conflicts.length > 0 && <section className="rounded-xl border border-red-200 bg-red-50 p-4"><h2 className="font-semibold">Conflictos</h2>{view.conflicts.map((conflict, index) => <p key={`${conflict.code}-${index}`} className="mt-1 text-sm">{conflict.severity.toUpperCase()}: {conflict.message}</p>)}</section>}
-      <div className="flex items-center gap-4"><button disabled={busy} onClick={save} className="rounded-xl bg-slate-950 px-5 py-3 font-semibold text-white disabled:opacity-40">Guardar y continuar</button><span role="status" className="text-sm text-slate-600">{status}</span></div>
+      <div className="flex flex-wrap items-center gap-4"><button disabled={busy} onClick={save} className="rounded-xl bg-slate-950 px-5 py-3 font-semibold text-white disabled:opacity-40">Guardar y continuar</button>{view.stage === "mapped" && <a href={`/bi/${datasetId}/review`} className="rounded-xl border border-slate-300 px-5 py-3 font-semibold">Revisar calidad</a>}<span role="status" className="text-sm text-slate-600">{status}</span></div>
     </div>
   );
 }
