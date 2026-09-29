@@ -1,0 +1,161 @@
+"""Resolve config and execute isolated dashboard widgets."""
+
+from datetime import date
+from pathlib import Path
+from typing import Any
+
+from analytics_core.engine.base import DataEngine
+from analytics_core.engine.query import FilterClause, GroupBy, MeasureSpec, OrderBy, QuerySpec
+from bi.dashboard.filters import derive_filters
+from bi.dashboard.templates import LayoutSpec, SectionTemplate, WidgetTemplate
+from bi.dashboard.widgets import ChartResult, ChartSeries, ComparisonOption, DashboardSpec, QualityResult, SectionSpec, WidgetSpec
+from bi.insights.config import SUMMARY_LIMIT
+from bi.insights.engine import InsightEngine
+from bi.insights.rules.universal import channel_dominance, data_quality_alert, growth_vs_previous, leader_share, peak_period, top_n_concentration
+from bi.metrics.availability import resolve_availability
+from bi.metrics.comparison import ComparisonResolver
+from bi.metrics.engine import MetricEngine
+from bi.metrics.models import ComparisonSpec, DateRange, MetricResult, UnavailableMetric
+from bi.metrics.registry import MetricRegistry
+
+
+def auto_grain(start: date | None, end: date | None) -> str:
+    if not start or not end:
+        return "month"
+    days = (end - start).days + 1
+    return "day" if days <= 62 else "month" if days <= 730 else "quarter"
+
+
+class DashboardBuilder:
+    def __init__(self, engine: DataEngine, metrics: MetricRegistry):
+        self.engine = engine
+        self.metric_engine = MetricEngine(engine, metrics)
+        self.metrics = metrics
+        self.comparisons = ComparisonResolver()
+
+    def _templates(self, profile, available: set[str], time_field: str) -> list[SectionTemplate]:
+        bi = profile.bi
+        kpis = tuple(WidgetTemplate(id=f"kpi_{metric}", type="kpi", title_key=f"metric.{metric}", metric_id=metric, layout=LayoutSpec(span=3)) for metric in (bi.kpi_order if bi else ())[:6])
+        sections = [SectionTemplate(id="executive_summary", title_key="section.executive_summary", widgets=(*kpis, WidgetTemplate(id="insights_top", type="insights", title_key="section.insights", layout=LayoutSpec(span=12))))]
+        if time_field in available:
+            sections.append(SectionTemplate(id="temporal", title_key="section.temporal", visible_if_fields=(time_field,), widgets=(WidgetTemplate(id="revenue_over_time", type="timeseries", title_key="metric.revenue", metric_id="revenue", required_fields=(time_field, "amount"), layout=LayoutSpec(span=12)),)))
+        dimensions = list(bi.featured_dimensions if bi else ())
+        dimensions.extend(sorted(field for field in available if field.startswith("custom__") and field not in dimensions))
+        generic = [field for field in dimensions if field in available and field not in {"concept", "customer_id", "customer_name", "location", "channel"}]
+        if generic:
+            sections.append(SectionTemplate(id="breakdown", title_key="section.breakdown", widgets=tuple(WidgetTemplate(id=f"revenue_by_{dim}", type="breakdown", title_key=f"field.{dim}", metric_id="revenue", dimension=dim, top_n=10, chart_variant="bar", required_fields=("amount", dim)) for dim in generic)))
+        conditional = (("customers", "customer_id" if "customer_id" in available else "customer_name"), ("concept_analysis", "concept"), ("geography", "location"), ("channel", "channel"))
+        for section_id, dim in conditional:
+            if dim in available:
+                sections.append(SectionTemplate(id=section_id, title_key=f"section.{section_id}", widgets=(WidgetTemplate(id=f"revenue_by_{dim}", type="ranking" if section_id in {"customers", "geography"} else "breakdown", title_key=f"field.{dim}", metric_id="revenue", dimension=dim, top_n=10, chart_variant="donut" if section_id == "channel" else "bar", required_fields=("amount", dim)),)))
+        if {"amount", "cost"} <= available:
+            sections.append(SectionTemplate(id="profitability", title_key="section.profitability"))
+        custom = [field for field in available if field.startswith("custom__")]
+        if custom:
+            sections.append(SectionTemplate(id="custom_dimensions", title_key="section.custom_dimensions", widgets=tuple(WidgetTemplate(id=f"revenue_by_{dim}", type="breakdown", title_key=dim, metric_id="revenue", dimension=dim, top_n=10, required_fields=("amount", dim)) for dim in custom)))
+        if bi and bi.widgets:
+            sections.append(SectionTemplate(id="industry_specific", title_key="section.industry_specific", widgets=tuple(WidgetTemplate(**widget.model_dump()) for widget in bi.widgets)))
+        sections.append(SectionTemplate(id="data_quality", title_key="section.data_quality", widgets=(WidgetTemplate(id="quality", type="quality", title_key="section.data_quality", layout=LayoutSpec(span=12)),)))
+        return sections
+
+    def build(self, *, profile, canonical_path: Path, fields: list, available: set[str], filters: list[FilterClause], comparison: ComparisonSpec, time_field: str, grain: str, quality, row_count: int) -> tuple[DashboardSpec, dict[str, Any], int, list[dict]]:
+        availability = resolve_availability(self.metrics, available)
+        unavailable = [UnavailableMetric(metric_id=metric.id, label_key=metric.label_key, missing_fields=availability[metric.id].missing_fields) for metric in self.metrics.all() if not availability[metric.id].available]
+        coverage = self.engine.date_coverage(canonical_path, time_field) if time_field in available else None
+        current_range = self._current_range(filters, time_field, coverage)
+        resolved_grain = auto_grain(current_range.from_date, current_range.to_date) if grain == "auto" and current_range else ("month" if grain == "auto" else grain)
+        data: dict[str, Any] = {}
+        sections: list[SectionSpec] = []
+        chart_points: dict[str, list[list]] = {}
+        warnings: list[dict] = []
+        for section in self._templates(profile, available, time_field):
+            widgets: list[WidgetSpec] = []
+            for template in section.widgets:
+                if not set(template.required_fields) <= available or (template.metric_id and not availability[template.metric_id].available):
+                    continue
+                try:
+                    result = self._widget(template, canonical_path, available, filters, time_field, resolved_grain, quality)
+                    if isinstance(result, MetricResult) and comparison.mode != "none" and current_range and coverage:
+                        result = self._with_comparison(result, template.metric_id or "", canonical_path, available, filters, time_field, comparison, current_range, coverage)
+                except Exception:
+                    result = ChartResult(status="error", widget_id=template.id, chart="breakdown", x_type="category", error_key="widget.error")
+                if getattr(result, "status", None) == "unavailable":
+                    unavailable_id = template.metric_id or "revenue"
+                    if not any(item.metric_id == unavailable_id for item in unavailable):
+                        unavailable.append(UnavailableMetric(metric_id=unavailable_id, label_key=f"metric.{unavailable_id}", missing_fields=[]))
+                    continue
+                data[template.id] = result
+                if isinstance(result, ChartResult) and result.series:
+                    chart_points[template.dimension or "time"] = result.series[0].points
+                widgets.append(WidgetSpec(id=template.id, type=template.type, title_key=template.title_key, chart_variant=template.chart_variant, layout=template.layout))
+            if widgets:
+                sections.append(SectionSpec(id=section.id, title_key=section.title_key, collapsed=section.collapsed, widgets=widgets))
+        insights = self._insights(chart_points, quality, row_count, data)
+        if "insights_top" in data:
+            data["insights_top"] = {"status": "ok" if insights else "empty", "widget_id": "insights_top", "insights": [item.model_dump() for item in insights[:SUMMARY_LIMIT]]}
+        count = self.engine.run_query(canonical_path, QuerySpec(measures=[MeasureSpec(alias="rows", aggregation="count")], filters=filters)).rows[0]["rows"]
+        comparison_options = self._comparison_options(current_range, coverage)
+        spec = DashboardSpec(profile_id=profile.id, sections=sections, filters=derive_filters(self.engine, canonical_path, fields, available, profile.bi.extra_filters if profile.bi else ()), unavailable_metrics=unavailable, comparison_options=comparison_options, terminology=profile.data.terminology.get("es", {}))
+        return spec, data, int(count), warnings
+
+    def _with_comparison(self, result, metric_id, path, available, filters, time_field, comparison, current_range, coverage):
+        metric = self.metrics.get(metric_id)
+        previous_range = self.comparisons.previous_range(comparison.mode, current_range)
+        if not metric.comparable or not previous_range or self.comparisons.coverage_ratio(previous_range, coverage) < 0.30:
+            return result
+        previous_filters = [item for item in filters if item.field != time_field]
+        previous_filters.append(FilterClause(field=time_field, op="between", values=[previous_range.from_date, previous_range.to_date]))
+        previous = self.metric_engine.evaluate(path, metric_id, available, previous_filters)
+        resolved = self.comparisons.resolve(comparison.mode, current_range, coverage, result.value, previous.value)
+        return result.model_copy(update={"comparison": resolved})
+
+    def _widget(self, widget: WidgetTemplate, path: Path, available: set[str], filters: list[FilterClause], time_field: str, grain: str, quality):
+        if widget.type == "kpi":
+            return self.metric_engine.evaluate(path, widget.metric_id or "", available, filters)
+        if widget.type == "quality":
+            summary = quality
+            return QualityResult(widget_id=widget.id, total_issues=summary.total_issues if summary else 0, error_count=summary.error_count if summary else 0, warning_count=summary.warning_count if summary else 0, info_count=summary.info_count if summary else 0)
+        if widget.type == "insights":
+            return {"status": "empty", "widget_id": widget.id, "insights": []}
+        metric_status = self.metric_engine.evaluate(path, widget.metric_id or "revenue", available, filters)
+        if metric_status.status == "unavailable":
+            return ChartResult(status="unavailable", widget_id=widget.id, chart="timeseries" if widget.type == "timeseries" else "breakdown", x_type="time" if widget.type == "timeseries" else "category")
+        dimension = time_field if widget.type == "timeseries" else widget.dimension or ""
+        query = QuerySpec(measures=[MeasureSpec(alias=widget.metric_id or "revenue", aggregation="sum", field="amount")], group_by=[GroupBy(field=dimension, grain=grain if widget.type == "timeseries" else None)], filters=filters, order_by=[] if widget.type == "timeseries" else [OrderBy(field=widget.metric_id or "revenue", direction="desc")], limit=widget.top_n, others_bucket=bool(widget.top_n))
+        result = self.engine.run_query(path, query)
+        key = result.columns[0]
+        metric = widget.metric_id or "revenue"
+        total = sum(float(row[metric]) for row in result.rows if isinstance(row.get(metric), (int, float)))
+        points = [[str(row.get(key)), row.get(metric)] if widget.type == "timeseries" else [str(row.get(key)), row.get(metric), (float(row[metric]) / total if total and isinstance(row.get(metric), (int, float)) else 0)] for row in result.rows]
+        return ChartResult(status="ok" if points else "empty", widget_id=widget.id, chart="timeseries" if widget.type == "timeseries" else "ranking" if widget.type == "ranking" else "breakdown", x_type="time" if widget.type == "timeseries" else "category", grain=grain if widget.type == "timeseries" else None, series=[ChartSeries(key=metric, label_key=f"metric.{metric}", points=points)], meta={"has_others_bucket": any(point[0] == "Otros" for point in points)})
+
+    @staticmethod
+    def _current_range(filters, time_field, coverage):
+        clause = next((item for item in filters if item.field == time_field and item.op == "between"), None)
+        if clause:
+            return DateRange(from_date=date.fromisoformat(str(clause.values[0])[:10]), to_date=date.fromisoformat(str(clause.values[1])[:10]))
+        if coverage and coverage.minimum and coverage.maximum:
+            return DateRange(from_date=coverage.minimum, to_date=coverage.maximum)
+        return None
+
+    def _comparison_options(self, current, coverage):
+        modes = ["none", "previous_period", "previous_week", "previous_month", "previous_quarter", "previous_year"]
+        options = []
+        for mode in modes:
+            previous = self.comparisons.previous_range(mode, current) if current else None
+            ratio = self.comparisons.coverage_ratio(previous, coverage) if previous and coverage else 0
+            options.append(ComparisonOption(mode=mode, available=mode == "none" or ratio >= 0.30, reason_key=None if mode == "none" or ratio >= 0.30 else "comparison.insufficient_data"))
+        return options
+
+    @staticmethod
+    def _insights(points, quality, row_count, data):
+        found = []
+        for value in data.values():
+            if isinstance(value, MetricResult):
+                found += growth_vs_previous(value.comparison, value.metric_id)
+        for dimension, values in points.items():
+            if dimension == "time": found += peak_period(values)
+            elif dimension == "channel": found += channel_dominance(values)
+            else: found += leader_share(values, dimension) + top_n_concentration(values, dimension)
+        found += data_quality_alert(quality.total_issues if quality else 0, row_count)
+        return InsightEngine().prioritize(found)

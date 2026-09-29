@@ -9,6 +9,7 @@ from bi.services.datasets import DatasetService
 from bi.services.mapping import MappingService
 from bi.services.profiles import ProfileService
 from bi.services.prepare import PrepareService
+from bi.services.dashboard import DashboardService
 
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 
@@ -33,3 +34,10 @@ def get_prepare_service(settings: SettingsDep) -> PrepareService:
 
 
 PrepareServiceDep = Annotated[PrepareService, Depends(get_prepare_service)]
+
+
+def get_dashboard_service(settings: SettingsDep) -> DashboardService:
+    return DashboardService(settings)
+
+
+DashboardServiceDep = Annotated[DashboardService, Depends(get_dashboard_service)]

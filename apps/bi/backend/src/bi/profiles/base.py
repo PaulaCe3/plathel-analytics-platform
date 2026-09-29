@@ -23,9 +23,30 @@ class ProfileData(BaseModel, frozen=True):
     checks: tuple[ProfileCheck, ...] = ()
 
 
+class BIWidgetConfig(BaseModel, frozen=True):
+    id: str
+    type: Literal["kpi", "timeseries", "breakdown", "ranking", "table", "insights", "quality"]
+    title_key: str
+    metric_id: str | None = None
+    dimension: str | None = None
+    top_n: int | None = None
+    chart_variant: Literal["bar", "donut", "line", "area"] | None = None
+    required_fields: tuple[str, ...] = ()
+
+
+class BIConfig(BaseModel, frozen=True):
+    metrics: tuple[str, ...] = ("revenue", "transactions", "customers", "avg_transaction_value", "quantity", "avg_unit_price")
+    kpi_order: tuple[str, ...] = ("revenue", "transactions", "customers", "avg_transaction_value", "quantity", "avg_unit_price")
+    featured_dimensions: tuple[str, ...] = ()
+    widgets: tuple[BIWidgetConfig, ...] = ()
+    insight_rules: tuple[str, ...] = ("growth_vs_previous", "leader_share", "top_n_concentration", "peak_period", "channel_dominance", "data_quality_alert")
+    extra_filters: tuple[str, ...] = ()
+
+
 class IndustryProfile(BaseModel, frozen=True):
     id: str
     version: str = "1.0"
     name: str
     description: str
     data: ProfileData
+    bi: BIConfig | None = None

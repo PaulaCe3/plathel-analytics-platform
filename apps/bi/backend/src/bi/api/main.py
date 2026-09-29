@@ -8,7 +8,7 @@ from analytics_core.logging import configure_logging
 from analytics_core.settings import Settings, get_settings
 from bi.api.error_handlers import app_error_handler, unexpected_error_handler
 from bi.api.middleware import RequestContextMiddleware
-from bi.api.routers import datasets, health, mapping, meta, prepare, profiles
+from bi.api.routers import dashboard, datasets, health, mapping, meta, prepare, profiles
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -42,6 +42,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     api.include_router(mapping.router)
     api.include_router(profiles.router)
     api.include_router(prepare.router)
+    api.include_router(dashboard.router)
     app.include_router(api)
     return app
 

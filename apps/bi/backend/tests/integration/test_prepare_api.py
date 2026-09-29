@@ -37,6 +37,14 @@ def test_complete_prepare_clean_reset_flow(tmp_path: Path) -> None:
         assert reset["canonical_row_count"] == 3
         dataset = client.get(f"/api/v1/datasets/{dataset_id}").json()
         assert dataset["stage"] == "ready" and dataset["has_canonical"] and dataset["cleaning_confirmed"]
+        dashboard = client.post(f"/api/v1/datasets/{dataset_id}/dashboard", json={"filters": [{"field": "custom__segmento", "op": "in", "values": ["Mayorista"]}], "comparison": {"mode": "previous_period"}, "time_field": "date", "grain": "day"})
+        assert dashboard.status_code == 200, dashboard.text
+        body = dashboard.json()
+        assert body["filtered_row_count"] == 2
+        assert body["data"]["kpi_revenue"]["value"] == 200
+        assert any(section["id"] == "custom_dimensions" for section in body["spec"]["sections"])
+        options = client.get(f"/api/v1/datasets/{dataset_id}/filters/custom__segmento/options?q=may")
+        assert options.status_code == 200 and options.json()["options"][0]["value"] == "Mayorista"
         assert raw_path.read_bytes() == raw_before
         assert client.delete(f"/api/v1/datasets/{dataset_id}").status_code == 204
 
@@ -47,3 +55,5 @@ def test_validate_requires_mapped_stage(tmp_path: Path) -> None:
         response = client.post(f"/api/v1/datasets/{dataset['dataset_id']}/validate")
         assert response.status_code == 409
         assert response.json()["error"]["code"] == "STAGE_NOT_READY"
+        dashboard = client.post(f"/api/v1/datasets/{dataset['dataset_id']}/dashboard", json={"comparison": {"mode": "none"}, "grain": "auto"})
+        assert dashboard.status_code == 409

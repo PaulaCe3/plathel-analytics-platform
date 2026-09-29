@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 import { CleaningAction, CleaningResult, TransformationLog, ValidateResult, applyCleaning, getTransformations, validateDataset } from "@/lib/api/prepare";
 
@@ -75,6 +76,6 @@ export function DatasetReview({ datasetId }: { datasetId: string }) {
       <p role="status" className="mt-3 text-sm text-slate-600">{status}</p>
     </section>
 
-    {(cleaned || log) && <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Auditoría</p><h2 className="mt-2 text-2xl font-semibold">Registro de cambios</h2><ol className="mt-4 space-y-3">{(log?.transformations ?? cleaned?.transformation_log.transformations ?? []).map((item) => <li key={item.id} className="rounded-lg bg-slate-50 p-3"><strong>{item.seq}. {item.summary}</strong><p className="text-sm text-slate-600">{item.rows_before} → {item.rows_after} filas · {item.automatic ? "Automática" : "Confirmada por el usuario"}</p></li>)}</ol></section>}
+    {(cleaned || log) && <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Auditoría</p><h2 className="mt-2 text-2xl font-semibold">Registro de cambios</h2><ol className="mt-4 space-y-3">{(log?.transformations ?? cleaned?.transformation_log.transformations ?? []).map((item) => <li key={item.id} className="rounded-lg bg-slate-50 p-3"><strong>{item.seq}. {item.summary}</strong><p className="text-sm text-slate-600">{item.rows_before} → {item.rows_after} filas · {item.automatic ? "Automática" : "Confirmada por el usuario"}</p></li>)}</ol><Link href={`/bi/${datasetId}/dashboard`} className="mt-5 inline-block rounded-xl bg-blue-700 px-5 py-3 font-semibold text-white">Ver dashboard</Link></section>}
   </div>;
 }

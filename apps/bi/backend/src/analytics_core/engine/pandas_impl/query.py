@@ -23,6 +23,8 @@ def _apply_filter(frame: pd.DataFrame, clause: FilterClause) -> pd.DataFrame:
         return frame.iloc[0:0]
     series = frame[clause.field]
     values = clause.values
+    if pd.api.types.is_datetime64_any_dtype(series.dtype):
+        values = [pd.to_datetime(value, errors="coerce") for value in values]
     if clause.op == "in":
         mask = series.isin(values)
     elif clause.op == "not_in":

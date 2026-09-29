@@ -1,4 +1,4 @@
-from bi.profiles.base import IndustryProfile, ProfileData
+from bi.profiles.base import BIConfig, IndustryProfile, ProfileData
 from bi.profiles.helpers import rules
 
 PROFILE = IndustryProfile(
@@ -12,5 +12,5 @@ PROFILE = IndustryProfile(
             "channel": ["canal", "origen"], "location": ["provincia", "region", "zona", "ubicacion", "sucursal"], "responsible": ["vendedor", "salesperson", "asesor"],
             "customer_id": ["cliente_id", "id_cliente"], "customer_name": ["cliente", "customer", "nombre_cliente"],
         }, terminology={"es": {"concept": "Producto", "responsible": "Vendedor", "amount": "Venta"}},
-    ),
+    ), bi=BIConfig(featured_dimensions=("category", "channel", "concept", "location"), extra_filters=("channel", "category", "location")),
 )

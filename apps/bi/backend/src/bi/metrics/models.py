@@ -69,6 +69,7 @@ class ComparisonResult(BaseModel, frozen=True):
 class UnavailableMetric(BaseModel, frozen=True):
     metric_id: str
     missing_fields: list[str]
+    label_key: str | None = None
 
 
 class MetricAvailability(BaseModel, frozen=True):

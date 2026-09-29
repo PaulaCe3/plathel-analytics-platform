@@ -1,4 +1,4 @@
-from bi.profiles.base import IndustryProfile, ProfileData
+from bi.profiles.base import BIConfig, IndustryProfile, ProfileData
 from bi.profiles.helpers import extension, rules
 from analytics_core.validation.models import ProfileCheck
 
@@ -10,5 +10,5 @@ PROFILE = IndustryProfile(
         aliases={"booking_date": ["fecha_reserva", "reservation_date"], "check_in": ["checkin", "entrada", "fecha_entrada"], "check_out": ["checkout", "salida", "fecha_salida"], "nights": ["noches"], "room_type": ["habitacion", "tipo_habitacion", "room"], "guests": ["huespedes", "pasajeros"], "amount": ["importe", "total", "ingreso", "revenue", "tarifa_total"], "channel": ["canal", "booking_channel", "origen_reserva"], "transaction_id": ["reserva", "reserva_id", "booking_id", "reservation_id"]},
         terminology={"es": {"concept": "Habitación", "amount": "Ingreso", "responsible": "Responsable"}}, primary_date="check_in", alternate_dates=("booking_date",),
         checks=(ProfileCheck(id="checkout_after_checkin", operation="greater_than", left_field="check_out", right_field="check_in", severity="warning", message="La fecha de salida debe ser posterior a la fecha de entrada."),),
-    ),
+    ), bi=BIConfig(kpi_order=("revenue", "transactions", "avg_transaction_value"), featured_dimensions=("room_type", "channel", "location"), extra_filters=("channel", "room_type", "status")),
 )

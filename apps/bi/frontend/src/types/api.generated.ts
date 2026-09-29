@@ -194,6 +194,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/datasets/{dataset_id}/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Dashboard */
+        post: operations["dashboard_api_v1_datasets__dataset_id__dashboard_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/datasets/{dataset_id}/filters/{field}/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Filter Options */
+        get: operations["filter_options_api_v1_datasets__dataset_id__filters__field__options_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -204,6 +238,47 @@ export interface components {
             file: string;
             /** Industry Id */
             industry_id?: string | null;
+        };
+        /** ChartResult */
+        ChartResult: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "empty" | "unavailable" | "error";
+            /** Widget Id */
+            widget_id: string;
+            /**
+             * Chart
+             * @enum {string}
+             */
+            chart: "timeseries" | "breakdown" | "ranking";
+            /**
+             * X Type
+             * @enum {string}
+             */
+            x_type: "time" | "category";
+            /** Grain */
+            grain?: string | null;
+            /** Series */
+            series?: components["schemas"]["ChartSeries"][];
+            /** Comparison Series */
+            comparison_series?: components["schemas"]["ChartSeries"][];
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            };
+            /** Error Key */
+            error_key?: string | null;
+        };
+        /** ChartSeries */
+        ChartSeries: {
+            /** Key */
+            key: string;
+            /** Label Key */
+            label_key: string;
+            /** Points */
+            points: unknown[][];
         };
         /** CleaningActionSpec */
         CleaningActionSpec: {
@@ -299,6 +374,108 @@ export interface components {
             /** Approximate Cardinality */
             approximate_cardinality?: number | null;
         };
+        /** ComparisonOption */
+        ComparisonOption: {
+            /** Mode */
+            mode: string;
+            /** Available */
+            available: boolean;
+            /** Reason Key */
+            reason_key?: string | null;
+        };
+        /** ComparisonResult */
+        ComparisonResult: {
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "none" | "previous_period" | "previous_week" | "previous_month" | "previous_quarter" | "previous_year";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "insufficient_data" | "previous_zero" | "not_applicable";
+            /** Previous Value */
+            previous_value?: number | null;
+            /** Delta Abs */
+            delta_abs?: number | null;
+            /** Delta Pct */
+            delta_pct?: number | null;
+            previous_range?: components["schemas"]["DateRange"] | null;
+            /**
+             * Partial Period
+             * @default false
+             */
+            partial_period: boolean;
+            /** Warnings */
+            warnings?: components["schemas"]["MetricWarning"][];
+        };
+        /** ComparisonSpec */
+        ComparisonSpec: {
+            /**
+             * Mode
+             * @default none
+             * @enum {string}
+             */
+            mode: "none" | "previous_period" | "previous_week" | "previous_month" | "previous_quarter" | "previous_year";
+        };
+        /** DashboardRequest */
+        DashboardRequest: {
+            /** Filters */
+            filters?: components["schemas"]["FilterClause"][];
+            /**
+             * @default {
+             *       "mode": "none"
+             *     }
+             */
+            comparison: components["schemas"]["ComparisonSpec"];
+            /** Time Field */
+            time_field?: string | null;
+            /**
+             * Grain
+             * @default auto
+             * @enum {string}
+             */
+            grain: "auto" | "day" | "week" | "month" | "quarter" | "year";
+        };
+        /** DashboardResponse */
+        DashboardResponse: {
+            spec: components["schemas"]["DashboardSpec"];
+            /** Data */
+            data: {
+                [key: string]: components["schemas"]["MetricResult"] | components["schemas"]["ChartResult"] | components["schemas"]["TableResult"] | components["schemas"]["QualityResult"] | unknown;
+            };
+            /** Row Count */
+            row_count: number;
+            /** Filtered Row Count */
+            filtered_row_count: number;
+            /** Warnings */
+            warnings?: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+        };
+        /** DashboardSpec */
+        DashboardSpec: {
+            /** Profile Id */
+            profile_id: string;
+            /** Sections */
+            sections: components["schemas"]["SectionSpec"][];
+            /** Filters */
+            filters: components["schemas"]["FilterDefinition"][];
+            /** Unavailable Metrics */
+            unavailable_metrics: components["schemas"]["UnavailableMetric"][];
+            /** Comparison Options */
+            comparison_options: components["schemas"]["ComparisonOption"][];
+            /** Terminology */
+            terminology?: {
+                [key: string]: string;
+            };
+        };
         /** DataQualityReport */
         DataQualityReport: {
             /** Issues */
@@ -363,6 +540,19 @@ export interface components {
             /** Cleaning Confirmed */
             cleaning_confirmed: boolean;
         };
+        /** DateRange */
+        DateRange: {
+            /**
+             * From
+             * Format: date
+             */
+            from: string;
+            /**
+             * To
+             * Format: date
+             */
+            to: string;
+        };
         /** FileMetadata */
         FileMetadata: {
             /** Original Name */
@@ -371,6 +561,54 @@ export interface components {
             extension: string;
             /** Size Bytes */
             size_bytes: number;
+        };
+        /** FilterClause */
+        FilterClause: {
+            /** Field */
+            field: string;
+            /**
+             * Op
+             * @enum {string}
+             */
+            op: "in" | "not_in" | "between" | "gte" | "lte" | "contains";
+            /** Values */
+            values: unknown[];
+        };
+        /** FilterDefinition */
+        FilterDefinition: {
+            /** Id */
+            id: string;
+            /** Field */
+            field: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "date_range" | "multi_select" | "search";
+            /** Label Key */
+            label_key: string;
+            /** Options */
+            options?: components["schemas"]["FilterOption"][];
+            /** Minimum */
+            minimum?: string | null;
+            /** Maximum */
+            maximum?: string | null;
+            /** Presets */
+            presets?: string[];
+        };
+        /** FilterOption */
+        FilterOption: {
+            /** Value */
+            value: string;
+            /** Count */
+            count: number;
+        };
+        /** FilterOptionsResponse */
+        FilterOptionsResponse: {
+            /** Field */
+            field: string;
+            /** Options */
+            options: components["schemas"]["FilterOption"][];
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -417,6 +655,14 @@ export interface components {
              * @default validation
              */
             category: string;
+        };
+        /** LayoutSpec */
+        LayoutSpec: {
+            /**
+             * Span
+             * @default 6
+             */
+            span: number;
         };
         /** MappingCandidate */
         MappingCandidate: {
@@ -498,6 +744,51 @@ export interface components {
             /** Languages */
             languages: string[];
         };
+        /** MetricResult */
+        MetricResult: {
+            /** Metric Id */
+            metric_id: string;
+            /** Label Key */
+            label_key: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "unavailable" | "empty" | "error";
+            /** Value */
+            value?: number | null;
+            format: components["schemas"]["OutputSpec"];
+            /**
+             * Excluded Rows
+             * @default 0
+             */
+            excluded_rows: number;
+            /** Warnings */
+            warnings?: components["schemas"]["MetricWarning"][];
+            comparison?: components["schemas"]["ComparisonResult"] | null;
+        };
+        /** MetricWarning */
+        MetricWarning: {
+            /** Code */
+            code: string;
+            /** Message Key */
+            message_key: string;
+        };
+        /** OutputSpec */
+        OutputSpec: {
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "currency" | "number" | "integer" | "percent" | "duration";
+            /**
+             * Decimals
+             * @default 0
+             */
+            decimals: number;
+            /** Currency */
+            currency?: string | null;
+        };
         /** ParseReport */
         ParseReport: {
             /** Total Rows */
@@ -575,6 +866,37 @@ export interface components {
             /** Description */
             description?: string | null;
         };
+        /** QualityResult */
+        QualityResult: {
+            /**
+             * Status
+             * @default ok
+             * @enum {string}
+             */
+            status: "ok" | "empty" | "unavailable" | "error";
+            /** Widget Id */
+            widget_id: string;
+            /**
+             * Total Issues
+             * @default 0
+             */
+            total_issues: number;
+            /**
+             * Error Count
+             * @default 0
+             */
+            error_count: number;
+            /**
+             * Warning Count
+             * @default 0
+             */
+            warning_count: number;
+            /**
+             * Info Count
+             * @default 0
+             */
+            info_count: number;
+        };
         /** QualitySummary */
         QualitySummary: {
             /**
@@ -602,6 +924,20 @@ export interface components {
                 [key: string]: number;
             };
         };
+        /** SectionSpec */
+        SectionSpec: {
+            /** Id */
+            id: string;
+            /** Title Key */
+            title_key: string;
+            /**
+             * Collapsed
+             * @default false
+             */
+            collapsed: boolean;
+            /** Widgets */
+            widgets: components["schemas"]["WidgetSpec"][];
+        };
         /** SourceSettings */
         SourceSettings: {
             /** Encoding */
@@ -620,6 +956,24 @@ export interface components {
             date_dayfirst?: boolean | null;
             /** Date Format */
             date_format?: string | null;
+        };
+        /** TableResult */
+        TableResult: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "empty" | "unavailable" | "error";
+            /** Widget Id */
+            widget_id: string;
+            /** Columns */
+            columns?: string[];
+            /** Rows */
+            rows?: {
+                [key: string]: unknown;
+            }[];
+            /** Error Key */
+            error_key?: string | null;
         };
         /** Transformation */
         Transformation: {
@@ -672,6 +1026,15 @@ export interface components {
             /** Transformations */
             transformations?: components["schemas"]["Transformation"][];
         };
+        /** UnavailableMetric */
+        UnavailableMetric: {
+            /** Metric Id */
+            metric_id: string;
+            /** Missing Fields */
+            missing_fields: string[];
+            /** Label Key */
+            label_key?: string | null;
+        };
         /** ValidateResponse */
         ValidateResponse: {
             /** Dataset Id */
@@ -720,6 +1083,23 @@ export interface components {
             info_count: number;
             /** Parse Reports */
             parse_reports?: components["schemas"]["ParseReport"][];
+        };
+        /** WidgetSpec */
+        WidgetSpec: {
+            /** Id */
+            id: string;
+            /** Type */
+            type: string;
+            /** Title Key */
+            title_key: string;
+            /** Chart Variant */
+            chart_variant?: string | null;
+            /**
+             * @default {
+             *       "span": 6
+             *     }
+             */
+            layout: components["schemas"]["LayoutSpec"];
         };
     };
     responses: never;
@@ -1132,6 +1512,76 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TransformationLog"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dashboard_api_v1_datasets__dataset_id__dashboard_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dataset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DashboardRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    filter_options_api_v1_datasets__dataset_id__filters__field__options_get: {
+        parameters: {
+            query?: {
+                q?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                dataset_id: string;
+                field: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FilterOptionsResponse"];
                 };
             };
             /** @description Validation Error */
