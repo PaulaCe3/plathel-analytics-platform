@@ -18,8 +18,10 @@ async function clean(page) {
   await accessible(page);
   await page.getByRole("button", { name: "Preparar mis datos" }).focus();
   await page.keyboard.press("Enter");
-  await page.getByRole("link", { name: "Ver análisis" }).click();
-  await expect(page.getByRole("heading", { name: "Tu análisis", exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "Ver resultados" }).click();
+  await expect(page.getByRole("heading", { name: "Esto es lo que encontramos", exact: true })).toBeVisible();
+  await page.getByRole("link",{name:"Explorar dashboard",exact:true}).click();
+  await expect(page.getByRole("heading",{name:"Explorá tus datos",exact:true}).first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "Resumen", exact: true })).toBeVisible();
   await expect(page.locator("canvas").first()).toBeVisible();
 }
@@ -107,6 +109,7 @@ for (const [demo, profile, metric, expected] of [["retail_demo", "retail_ecommer
 }
 test("demo real, filtro y XLSX", async ({ page }, testInfo) => {
   await page.goto("/bi");
+  await page.getByText("Probar con datos de ejemplo",{exact:true}).click();
   await page.getByRole("button", { name: "Probar Retail", exact: true }).click();
   await expect(page).toHaveURL(/review$/);
   await clean(page);

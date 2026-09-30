@@ -58,9 +58,9 @@ test("insights render localized templates without exposing keys or JSON", () => 
 
 test("dashboard first view limits KPIs and keeps remaining metrics in details",()=>{
  const widgets=Array.from({length:8},(_,i)=>widget("kpi",`kpi${i}`));const data=Object.fromEntries(widgets.map(w=>[w.id,{status:"ok",value:10,format:{type:"number",decimals:0},excluded_rows:0}]));
- const html=render(DashboardRenderer,{dashboard:dashboard(widgets,data)});assert.equal((html.split("Otras métricas")[0].match(/pl-kpi-value/g)??[]).length,6);assert.match(html,/Otras métricas/);
+ const html=render(DashboardRenderer,{dashboard:dashboard(widgets,data)});assert.equal((html.split("Otras métricas")[0].match(/pl-kpi-value/g)??[]).length,5);assert.match(html,/Otras métricas/);
 });
-test("chart adapter uses the PLATHEL palette",()=>assert.deepEqual(chartOption({chart:"ranking",series:[]}).color,["#404245","#5F5D5C","#B9BABA"]));
+test("chart adapter uses the PLATHEL palette",()=>assert.deepEqual(chartOption({chart:"ranking",series:[]}).color,["#596B52","#3F4D3B","#75866C","#98A590","#BEC6B8"]));
 
 const {readyColumnKeys,humanMessage}=await import(presentation);
 test("column presentation distinguishes confident matches and ambiguous columns without changing mappings",()=>{

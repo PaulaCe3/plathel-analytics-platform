@@ -93,7 +93,7 @@ export function DatasetIngestion() {
   return (
     <div className="space-y-8">
       <section id="upload" tabIndex={-1} className="home-upload" aria-labelledby="upload-title">
-      <h2 id="upload-title">{t("home.upload")}</h2><p>{t("home.uploadIntro")}</p>
+      <h2 id="upload-title" className="sr-only">{t("home.upload")}</h2>
       <form onSubmit={handleUpload} aria-busy={busy}>
         <input ref={inputRef} id="dataset-file" type="file" accept=".csv,.xlsx" className="sr-only" tabIndex={-1} aria-label={t("dataset-ingestion.text5")} disabled={busy || !!dataset} onChange={event=>chooseFile(event.target.files?.[0] ?? null)}/>
         <div className="home-dropzone" data-dragging={dragging} onDragOver={event=>{event.preventDefault();if(!busy && !dataset)setDragging(true);}} onDragLeave={()=>setDragging(false)} onDrop={event=>{event.preventDefault();setDragging(false);chooseFile(event.dataTransfer.files[0] ?? null);}}>
@@ -123,12 +123,12 @@ export function DatasetIngestion() {
             </label>
           )}
 
-          <div className="mt-6 overflow-x-auto">
+          <details className="pl-details"><summary>Ver una muestra de los datos</summary><div className="mt-6 overflow-x-auto">
             <table className="min-w-full border-collapse text-left text-sm">
               <thead><tr>{preview.columns.map((column) => <th key={column.key} className="border-b border-slate-200 px-3 py-2 font-semibold">{column.original_name || column.key}</th>)}</tr></thead>
               <tbody>{preview.rows.map((row, index) => <tr key={index}>{preview.columns.map((column) => <td key={column.key} className="max-w-64 truncate border-b border-slate-100 px-3 py-2 text-slate-700">{row[column.key] ?? "—"}</td>)}</tr>)}</tbody>
             </table>
-          </div>
+          </div></details>
           <a href={`/bi/${dataset.dataset_id}/mapping`} className="mt-6 inline-flex rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white">{t("home.columns")}</a>
         </section>
       )}

@@ -4,10 +4,11 @@ import { python } from "../../playwright.config.mjs";
 import AxeBuilder from "@axe-core/playwright";
 test("home: hero, navigation, responsive and accessibility",async({page})=>{
  await page.goto("/bi");
- await expect(page.getByRole("heading",{name:"Convertí tus datos en decisiones claras"})).toBeVisible();
- await page.getByRole("link",{name:"Analizar mis datos"}).click();await expect(page).toHaveURL(/#upload$/);
- await page.getByRole("link",{name:"Probar una demo"}).click();await expect(page).toHaveURL(/#demos$/);
- await expect(page.getByRole("button",{name:"Probar Retail"})).toBeEnabled();
+ await expect(page.getByRole("heading",{name:"Subí tus datos",exact:true})).toBeVisible();
+ await expect(page.getByRole("button",{name:"Seleccionar archivo",exact:true})).toBeVisible();
+ await expect(page.getByRole("main")).not.toContainText(/Preparado para distintos|Todo listo para analizar|Convertí tus datos/);
+ await expect(page.getByRole("button",{name:"Probar Retail"})).toBeHidden();
+ await page.getByText("Probar con datos de ejemplo",{exact:true}).click();await expect(page.getByRole("button",{name:"Probar Retail"})).toBeEnabled();
  for(const width of [390,768,1280]) {await page.setViewportSize({width,height:900});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);}
  expect((await new AxeBuilder({page}).analyze()).violations).toEqual([]);
 });

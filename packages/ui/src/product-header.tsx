@@ -1,6 +1,4 @@
 "use client";
 import type { ReactNode } from "react";
-
-export function ProductHeader({ area, forecastHref="/forecast", children }: {area:"analysis"|"forecast";forecastHref?:string;children?:ReactNode}) {
- return <header className="pl-header"><a href="/bi" className="pl-wordmark">PLATHEL<span>DATA · AI · AUTOMATION</span></a><nav className="pl-product-nav" aria-label="Áreas de PLATHEL"><a href="/bi" aria-current={area==="analysis"?"page":undefined}>Análisis</a><a href={forecastHref} aria-current={area==="forecast"?"page":undefined}>Predicciones</a></nav><div className="pl-header-actions">{children}</div></header>;
-}
+export function ProductHeader({children}:{children?:ReactNode}){return <header className="pl-header"><a href="/bi" className="pl-wordmark">PLATHEL<span>DATA · AI · AUTOMATION</span></a><div className="pl-header-actions">{children}</div></header>;}
+export function JourneyNavigation({current,datasetId}:{current:1|2|3;datasetId?:string}){return <nav className="pl-stepper" aria-label="Tu progreso"><ol>{["Datos","Resultados","Dashboard"].map((label,i)=>{const step=i+1;const href=step===1?"/bi":datasetId&&step<=current?`/bi/${datasetId}/${step===2?"results":"dashboard"}`:null;return <li key={label} aria-current={step===current?"step":undefined} data-state={step===current?"current":step<current?"complete":"future"}><span aria-hidden="true">0{step}</span>{href&&step!==current?<a href={href}>{label}</a>:<span>{label}</span>}</li>;})}</ol></nav>;}

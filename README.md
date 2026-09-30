@@ -92,7 +92,7 @@ Playwright levanta backend en 8100 y frontend en 3100, un worker, sin sleeps de 
 
 ## Predicciones
 
-`/forecast` comparte el shell de PLATHEL. Desde una sesión de Análisis, el enlace Predicciones lleva los datos ya preparados; no hay una segunda ingestión. `apps/forecast/backend/src/forecast` contiene contratos, servicio y referencia estacional mensual. `packages/ui` comparte controles, cabecera, EChartsBase, estilos y fuentes locales OFL.
+El flujo visible es Datos → Resultados + Predicciones → Dashboard. `/bi/[datasetId]/results` integra las predicciones disponibles usando la misma sesión preparada; `/forecast?dataset=<datasetId>` sigue disponible como entrada compatible. No hay una segunda ingestión. `apps/forecast/backend/src/forecast` contiene contratos, servicio y referencia estacional mensual. `packages/ui` comparte controles, cabecera, EChartsBase, estilos y fuentes locales OFL.
 
 GET `/api/v1/forecast/datasets/{dataset_id}/options` informa compatibilidad. POST `.../prediction` recibe `field` y `horizon` (1–6 meses). Requiere 24 meses completos consecutivos, una única fecha, valores válidos y una sola moneda para importes. No rellena huecos ni mezcla monedas. Omite el mes actual y fechas futuras de forma explícita. El horizonte parte del último mes observado, incluso cuando el archivo es histórico. La referencia repite el mismo mes del año anterior; evalúa seis predicciones de un mes usando solo datos anteriores (error absoluto medio). No estima intervalos ni cambios de tendencia.
 
