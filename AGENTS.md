@@ -6,6 +6,17 @@ docs/arquitectura_bi_multiindustria.md
 
 Para cada tarea, lee solo las secciones relevantes de ese documento, no todo el archivo salvo que sea necesario.
 
+## Memoria persistente
+Antes de una tarea importante, leer:
+- docs/knowledge/PLATHEL_CONTEXT.md
+- docs/knowledge/PRODUCT_VISION.md
+- docs/knowledge/DECISIONS.md
+- docs/knowledge/CURRENT_STATE.md
+
+Leer ROADMAP.md solo cuando la tarea afecte planificación. Después de una implementación importante, actualizar únicamente los documentos cuya información cambió. Mantener memoria breve, factual y útil: enlazar documentación existente; no duplicarla, guardar logs ni razonamientos internos, ni convertir la memoria en un diario.
+
+La memoria se versiona con el código. La configuración personal `.obsidian/` no se versiona. No instalar plugins ni depender de APIs externas para usar esta memoria.
+
 ## Architectural rules
 - analytics_core nunca importa bi.
 - pandas/numpy solo pueden importarse dentro de analytics_core/engine/pandas_impl/.
