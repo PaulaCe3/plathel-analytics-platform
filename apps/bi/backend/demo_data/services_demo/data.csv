@@ -1,0 +1,13 @@
+date,transaction_id,concept,responsible,project,duration_hours,amount,channel,currency,customer_name
+2026-01-01,OP001,Consultoría,Ana,Implementación,2,10000,Online,ARS,Cliente sintético 1
+2026-01-05,OP002,Soporte,Luis,Mantenimiento,3,20000,Local,ARS,Cliente sintético 2
+2026-01-09,OP003,Capacitación,Sol,Formación,4,30000,Online,ARS,Cliente sintético 3
+2026-01-13,OP004,Consultoría,Ana,Implementación,2,10000,Online,ARS,Cliente sintético 1
+2026-01-17,OP005,Soporte,Luis,Mantenimiento,3,20000,Local,ARS,Cliente sintético 2
+2026-01-21,OP006,Capacitación,Sol,Formación,4,30000,Online,ARS,Cliente sintético 3
+2026-02-01,OP007,Consultoría,Ana,Implementación,2,12000.0,Online,ARS,Cliente sintético 1
+2026-02-05,OP008,Soporte,Luis,Mantenimiento,3,24000.0,Local,ARS,Cliente sintético 2
+2026-02-09,OP009,Capacitación,Sol,Formación,4,36000.0,Online,ARS,Cliente sintético 3
+2026-02-13,OP010,Consultoría,Ana,Implementación,2,12000.0,Online,ARS,Cliente sintético 1
+2026-02-17,OP011,Soporte,Luis,Mantenimiento,3,24000.0,Local,ARS,Cliente sintético 2
+2026-02-21,OP012,Capacitación,Sol,Formación,4,36000.0,Online,ARS,Cliente sintético 3

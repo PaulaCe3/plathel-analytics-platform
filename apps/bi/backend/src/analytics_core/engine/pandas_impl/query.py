@@ -141,3 +141,18 @@ def date_coverage(canonical_path, field: str) -> DateCoverage:
     if values.empty:
         return DateCoverage()
     return DateCoverage(minimum=values.min().date(), maximum=values.max().date())
+
+
+def iter_rows(canonical_path, query: QuerySpec, columns: list[str], batch_size: int = 4096):
+    """Project full rows in batches using the same filters as aggregate queries."""
+    import pyarrow.parquet as pq
+    if query.measures or query.group_by or query.order_by or query.limit or query.others_bucket:
+        raise ValueError("Row projection accepts only QuerySpec filters")
+    required = list(dict.fromkeys([*columns, *(clause.field for clause in query.filters)]))
+    parquet = pq.ParquetFile(canonical_path)
+    for batch in parquet.iter_batches(batch_size=batch_size, columns=required):
+        frame = batch.to_pandas()
+        for clause in query.filters:
+            frame = _apply_filter(frame, clause)
+        for row in frame[columns].to_dict(orient="records"):
+            yield {key: _native(value) for key, value in row.items()}

@@ -1,0 +1,13 @@
+booking_date,check_in,check_out,transaction_id,room_reference,room_type,guests,nights,amount,channel,currency
+2026-01-01,2026-01-02,2026-01-04,OP001,Habitación doble,Doble,1,2,10000,Online,ARS
+2026-01-05,2026-01-06,2026-01-08,OP002,Suite,Suite,2,2,20000,Local,ARS
+2026-01-09,2026-01-10,2026-01-12,OP003,Habitación simple,Simple,3,2,30000,Online,ARS
+2026-01-13,2026-01-14,2026-01-16,OP004,Habitación doble,Doble,1,2,10000,Online,ARS
+2026-01-17,2026-01-18,2026-01-20,OP005,Suite,Suite,2,2,20000,Local,ARS
+2026-01-21,2026-01-22,2026-01-24,OP006,Habitación simple,Simple,3,2,30000,Online,ARS
+2026-02-01,2026-02-02,2026-02-04,OP007,Habitación doble,Doble,1,2,12000.0,Online,ARS
+2026-02-05,2026-02-06,2026-02-08,OP008,Suite,Suite,2,2,24000.0,Local,ARS
+2026-02-09,2026-02-10,2026-02-12,OP009,Habitación simple,Simple,3,2,36000.0,Online,ARS
+2026-02-13,2026-02-14,2026-02-16,OP010,Habitación doble,Doble,1,2,12000.0,Online,ARS
+2026-02-17,2026-02-18,2026-02-20,OP011,Suite,Suite,2,2,24000.0,Local,ARS
+2026-02-21,2026-02-22,2026-02-24,OP012,Habitación simple,Simple,3,2,36000.0,Online,ARS

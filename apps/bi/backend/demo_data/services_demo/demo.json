@@ -1,0 +1,68 @@
+{
+  "id": "services_demo",
+  "name": "Servicios",
+  "industry_id": "services",
+  "description": "Datos sintéticos de servicios para explorar métricas, filtros y exportación.",
+  "preset_mapping": [
+    {
+      "column_key": "c01",
+      "target_field": "date",
+      "disposition": "canonical",
+      "options": {}
+    },
+    {
+      "column_key": "c02",
+      "target_field": "transaction_id",
+      "disposition": "canonical",
+      "options": {}
+    },
+    {
+      "column_key": "c03",
+      "target_field": "concept",
+      "disposition": "canonical",
+      "options": {}
+    },
+    {
+      "column_key": "c04",
+      "target_field": "responsible",
+      "disposition": "canonical",
+      "options": {}
+    },
+    {
+      "column_key": "c05",
+      "target_field": "project",
+      "disposition": "canonical",
+      "options": {}
+    },
+    {
+      "column_key": "c06",
+      "target_field": "duration_hours",
+      "disposition": "canonical",
+      "options": {}
+    },
+    {
+      "column_key": "c07",
+      "target_field": "amount",
+      "disposition": "canonical",
+      "options": {}
+    },
+    {
+      "column_key": "c08",
+      "target_field": "channel",
+      "disposition": "canonical",
+      "options": {}
+    },
+    {
+      "column_key": "c09",
+      "target_field": "currency",
+      "disposition": "canonical",
+      "options": {}
+    },
+    {
+      "column_key": "c10",
+      "target_field": "customer_name",
+      "disposition": "canonical",
+      "options": {}
+    }
+  ]
+}

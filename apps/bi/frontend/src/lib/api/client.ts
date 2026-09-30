@@ -22,10 +22,7 @@ export class ApiClientError extends Error {
   }
 }
 
-export async function apiRequest<T>(
-  path: string,
-  init: RequestInit = {},
-): Promise<T> {
+async function apiResponse(path: string, init: RequestInit = {}): Promise<Response> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
     headers: {
@@ -42,14 +39,24 @@ export async function apiRequest<T>(
       payload = undefined;
     }
     throw new ApiClientError(
-      payload?.error.message ?? "No se pudo completar la solicitud.",
+      payload?.error?.message ?? "No se pudo completar la solicitud.",
       response.status,
       payload,
     );
   }
 
-  if (response.status === 204) {
-    return undefined as T;
-  }
+  return response;
+}
+
+export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const response = await apiResponse(path, init);
+  if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
+}
+
+export async function apiDownload(path: string, init: RequestInit = {}): Promise<{ blob: Blob; filename: string }> {
+  const response = await apiResponse(path, { ...init, headers: { Accept: "application/octet-stream", ...init.headers } });
+  const proposed = response.headers.get("Content-Disposition")?.match(/filename="([^"]+)"/)?.[1];
+  const filename = proposed && /^[a-z0-9._-]+$/i.test(proposed) ? proposed : "datos";
+  return { blob: await response.blob(), filename };
 }

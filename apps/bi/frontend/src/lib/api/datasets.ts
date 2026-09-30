@@ -26,3 +26,8 @@ export function selectDatasetSheet(datasetId: string, sheet: string): Promise<Da
 export function deleteDataset(datasetId: string): Promise<void> {
   return apiRequest<void>(`/api/v1/datasets/${datasetId}`, { method: "DELETE" });
 }
+
+
+export function getDataset(datasetId: string): Promise<Dataset> {
+  return apiRequest<Dataset>(`/api/v1/datasets/${datasetId}`);
+}

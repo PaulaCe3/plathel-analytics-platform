@@ -5,6 +5,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 from bi.metrics.models import MetricResult, UnavailableMetric
+from bi.insights.engine import Insight
 from bi.metrics.models import ComparisonSpec
 from analytics_core.engine.query import FilterClause
 from bi.dashboard.templates import LayoutSpec
@@ -91,9 +92,15 @@ class QualityResult(BaseModel, frozen=True):
     info_count: int = 0
 
 
+class InsightsResult(BaseModel, frozen=True):
+    status: Literal["ok", "empty", "unavailable", "error"]
+    widget_id: str
+    insights: list[Insight] = Field(default_factory=list)
+
+
 class DashboardResponse(BaseModel):
     spec: DashboardSpec
-    data: dict[str, MetricResult | ChartResult | TableResult | QualityResult | Any]
+    data: dict[str, MetricResult | ChartResult | InsightsResult | TableResult | QualityResult | Any]
     row_count: int
     filtered_row_count: int
     warnings: list[dict[str, Any]] = Field(default_factory=list)

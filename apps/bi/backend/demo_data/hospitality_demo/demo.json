@@ -1,0 +1,74 @@
+{
+  "id": "hospitality_demo",
+  "name": "Hotelería",
+  "industry_id": "hospitality",
+  "description": "Datos sintéticos de hotelería para explorar métricas, filtros y exportación.",
+  "preset_mapping": [
+    {
+      "column_key": "c01",
+      "target_field": "booking_date",
+      "disposition": "canonical",
+      "options": {}
+    },
+    {
+      "column_key": "c02",
+      "target_field": "check_in",
+      "disposition": "canonical",
+      "options": {}
+    },
+    {
+      "column_key": "c03",
+      "target_field": "check_out",
+      "disposition": "canonical",
+      "options": {}
+    },
+    {
+      "column_key": "c04",
+      "target_field": "transaction_id",
+      "disposition": "canonical",
+      "options": {}
+    },
+    {
+      "column_key": "c05",
+      "disposition": "ignored",
+      "target_field": null,
+      "options": {}
+    },
+    {
+      "column_key": "c06",
+      "target_field": "room_type",
+      "disposition": "canonical",
+      "options": {}
+    },
+    {
+      "column_key": "c07",
+      "target_field": "guests",
+      "disposition": "canonical",
+      "options": {}
+    },
+    {
+      "column_key": "c08",
+      "target_field": "nights",
+      "disposition": "canonical",
+      "options": {}
+    },
+    {
+      "column_key": "c09",
+      "target_field": "amount",
+      "disposition": "canonical",
+      "options": {}
+    },
+    {
+      "column_key": "c10",
+      "target_field": "channel",
+      "disposition": "canonical",
+      "options": {}
+    },
+    {
+      "column_key": "c11",
+      "target_field": "currency",
+      "disposition": "canonical",
+      "options": {}
+    }
+  ]
+}

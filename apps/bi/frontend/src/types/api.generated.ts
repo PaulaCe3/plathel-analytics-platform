@@ -38,6 +38,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/demos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Demos */
+        get: operations["list_demos_api_v1_demos_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/datasets/demo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Demo */
+        post: operations["create_demo_api_v1_datasets_demo_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/datasets": {
         parameters: {
             query?: never;
@@ -222,6 +256,23 @@ export interface paths {
         get: operations["filter_options_api_v1_datasets__dataset_id__filters__field__options_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/datasets/{dataset_id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Export Dataset */
+        post: operations["export_dataset_api_v1_datasets__dataset_id__export_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -443,7 +494,7 @@ export interface components {
             spec: components["schemas"]["DashboardSpec"];
             /** Data */
             data: {
-                [key: string]: components["schemas"]["MetricResult"] | components["schemas"]["ChartResult"] | components["schemas"]["TableResult"] | components["schemas"]["QualityResult"] | unknown;
+                [key: string]: components["schemas"]["MetricResult"] | components["schemas"]["ChartResult"] | components["schemas"]["InsightsResult"] | components["schemas"]["TableResult"] | components["schemas"]["QualityResult"] | unknown;
             };
             /** Row Count */
             row_count: number;
@@ -499,6 +550,8 @@ export interface components {
             stage: string;
             /** Industry Id */
             industry_id: string | null;
+            /** Demo Id */
+            demo_id?: string | null;
             source_settings: components["schemas"]["SourceSettings"];
             /**
              * Created At
@@ -552,6 +605,60 @@ export interface components {
              * Format: date
              */
             to: string;
+        };
+        /** DemoRequest */
+        DemoRequest: {
+            /** Demo Id */
+            demo_id: string;
+        };
+        /** DemoSummary */
+        DemoSummary: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Industry Id */
+            industry_id: string;
+            /** Description */
+            description: string;
+        };
+        /** ExportOptions */
+        ExportOptions: {
+            /**
+             * Format
+             * @description Formato registrado: csv o xlsx.
+             * @default csv
+             */
+            format: string;
+            /**
+             * Scope
+             * @default clean_data
+             * @enum {string}
+             */
+            scope: "clean_data" | "filtered_data";
+            /** Filters */
+            filters?: components["schemas"]["FilterClause"][];
+            /**
+             * Headers
+             * @default friendly
+             * @enum {string}
+             */
+            headers: "friendly" | "original";
+            /**
+             * Include Original Columns
+             * @default false
+             */
+            include_original_columns: boolean;
+            /**
+             * Include Ignored Columns
+             * @default false
+             */
+            include_ignored_columns: boolean;
+            /**
+             * Include Transformations
+             * @default true
+             */
+            include_transformations: boolean;
         };
         /** FileMetadata */
         FileMetadata: {
@@ -619,6 +726,44 @@ export interface components {
         HealthResponse: {
             /** Status */
             status: string;
+        };
+        /** Insight */
+        Insight: {
+            /** Id */
+            id: string;
+            /** Rule Id */
+            rule_id: string;
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "positive" | "negative" | "neutral" | "attention";
+            /** Template Key */
+            template_key: string;
+            /** Params */
+            params: {
+                [key: string]: unknown;
+            };
+            /** Text */
+            text: string;
+            /** Metric Id */
+            metric_id?: string | null;
+            /** Dimension */
+            dimension?: string | null;
+            /** Score */
+            score: number;
+        };
+        /** InsightsResult */
+        InsightsResult: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "empty" | "unavailable" | "error";
+            /** Widget Id */
+            widget_id: string;
+            /** Insights */
+            insights?: components["schemas"]["Insight"][];
         };
         /** Issue */
         Issue: {
@@ -1152,6 +1297,59 @@ export interface operations {
             };
         };
     };
+    list_demos_api_v1_demos_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoSummary"][];
+                };
+            };
+        };
+    };
+    create_demo_api_v1_datasets_demo_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DemoRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatasetResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     create_dataset_api_v1_datasets_post: {
         parameters: {
             query?: never;
@@ -1585,6 +1783,39 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["FilterOptionsResponse"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_dataset_api_v1_datasets__dataset_id__export_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dataset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExportOptions"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

@@ -10,6 +10,8 @@ from bi.services.mapping import MappingService
 from bi.services.profiles import ProfileService
 from bi.services.prepare import PrepareService
 from bi.services.dashboard import DashboardService
+from bi.services.exports import ExportService
+from bi.services.demos import DemoService
 
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 
@@ -41,3 +43,17 @@ def get_dashboard_service(settings: SettingsDep) -> DashboardService:
 
 
 DashboardServiceDep = Annotated[DashboardService, Depends(get_dashboard_service)]
+
+
+def get_export_service(settings: SettingsDep) -> ExportService:
+    return ExportService(settings)
+
+
+ExportServiceDep = Annotated[ExportService, Depends(get_export_service)]
+
+
+def get_demo_service(settings: SettingsDep) -> DemoService:
+    return DemoService(settings)
+
+
+DemoServiceDep = Annotated[DemoService, Depends(get_demo_service)]

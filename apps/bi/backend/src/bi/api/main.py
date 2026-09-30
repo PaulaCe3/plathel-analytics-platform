@@ -1,14 +1,15 @@
 """FastAPI application factory for BI Multi-Industria."""
 
 from fastapi import APIRouter, FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 
 from analytics_core.errors import AppError
 from analytics_core.logging import configure_logging
 from analytics_core.settings import Settings, get_settings
-from bi.api.error_handlers import app_error_handler, unexpected_error_handler
+from bi.api.error_handlers import app_error_handler, unexpected_error_handler, request_validation_error_handler
 from bi.api.middleware import RequestContextMiddleware
-from bi.api.routers import dashboard, datasets, health, mapping, meta, prepare, profiles
+from bi.api.routers import dashboard, datasets, demos, exports, health, mapping, meta, prepare, profiles
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -24,13 +25,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         redoc_url=f"{resolved.api_prefix}/redoc",
     )
     app.add_exception_handler(AppError, app_error_handler)
+    app.add_exception_handler(RequestValidationError, request_validation_error_handler)
     app.add_exception_handler(Exception, unexpected_error_handler)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[resolved.frontend_origin],
         allow_credentials=True,
-        allow_methods=["GET", "POST", "PATCH", "DELETE"],
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
         allow_headers=["*"],
+        expose_headers=["Content-Disposition"],
     )
     app.add_middleware(RequestContextMiddleware)
     app.dependency_overrides[get_settings] = lambda: resolved
@@ -38,11 +41,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     api = APIRouter(prefix=resolved.api_prefix)
     api.include_router(health.router)
     api.include_router(meta.router)
+    api.include_router(demos.router)
     api.include_router(datasets.router)
     api.include_router(mapping.router)
     api.include_router(profiles.router)
     api.include_router(prepare.router)
     api.include_router(dashboard.router)
+    api.include_router(exports.router)
     app.include_router(api)
     return app
 

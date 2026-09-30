@@ -22,6 +22,7 @@ class DatasetSession(BaseModel):
     dataset_id: str
     stage: Literal["created", "parsed", "mapped", "validated", "ready"] = "created"
     industry_id: str | None = None
+    demo_id: str | None = None
     source_settings: SourceSettings = Field(default_factory=SourceSettings)
     created_at: datetime
     updated_at: datetime

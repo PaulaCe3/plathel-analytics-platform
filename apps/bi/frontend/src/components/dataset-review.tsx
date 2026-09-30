@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { DemoNotice } from "./demo-notice";
 
 import { CleaningAction, CleaningResult, TransformationLog, ValidateResult, applyCleaning, getTransformations, validateDataset } from "@/lib/api/prepare";
 
@@ -54,6 +55,7 @@ export function DatasetReview({ datasetId }: { datasetId: string }) {
   const severityLabel = { error: "Error", warning: "Warning", info: "Info" };
 
   return <div className="space-y-6">
+    <DemoNotice datasetId={datasetId} />
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Validación</p>
       <h2 className="mt-2 text-2xl font-semibold">¿Podemos analizar estos datos?</h2>

@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "generate:api-types": "openapi-typescript http://127.0.0.1:8000/api/v1/openapi.json -o src/types/api.generated.ts"
+    "generate:api-types": "openapi-typescript http://127.0.0.1:8000/api/v1/openapi.json -o src/types/api.generated.ts",
+    "test:exports": "node --test tests/export-client.test.mjs"
   },
   "dependencies": {
     "echarts": "^6.1.0",

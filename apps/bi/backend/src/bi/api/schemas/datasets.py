@@ -13,6 +13,7 @@ class DatasetResponse(BaseModel):
     dataset_id: str
     stage: str
     industry_id: str | None
+    demo_id: str | None = None
     source_settings: SourceSettings
     created_at: datetime
     updated_at: datetime

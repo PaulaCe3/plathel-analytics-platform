@@ -53,3 +53,7 @@ def unexpected_error_response(request_id: str) -> JSONResponse:
 async def unexpected_error_handler(request: Request, exc: Exception) -> JSONResponse:
     logger.exception("unexpected request error")
     return unexpected_error_response(_request_id(request))
+
+
+async def request_validation_error_handler(request: Request, exc) -> JSONResponse:
+    return error_response(code="REQUEST_INVALID", message="Revisá las opciones de la solicitud.", details=[{"field": ".".join(map(str, item["loc"])), "type": item["type"]} for item in exc.errors()], request_id=_request_id(request), status=422)
