@@ -8,6 +8,7 @@ version = "0.1.0"
 description = "Backend de ingesta para BI Multi-Industria"
 requires-python = ">=3.12"
 dependencies = [
+  "plathel-analytics-core==0.1.0",
   "defusedxml>=0.7.1,<1",
   "fastapi>=0.116,<1",
   "charset-normalizer>=3.4,<4",
@@ -33,3 +34,6 @@ where = ["src"]
 [tool.pytest.ini_options]
 addopts = "-ra"
 testpaths = ["tests"]
+
+[tool.setuptools]
+py-modules = ["platform_api"]

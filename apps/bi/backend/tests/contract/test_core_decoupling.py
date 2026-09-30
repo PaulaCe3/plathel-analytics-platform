@@ -2,10 +2,11 @@ import ast
 from pathlib import Path
 
 
-CORE_ROOT = Path(__file__).parents[2] / "src" / "analytics_core"
+CORE_ROOT = Path(__file__).parents[5] / "packages" / "analytics_core" / "src" / "analytics_core"
 
 
 def test_analytics_core_does_not_import_bi() -> None:
+    assert CORE_ROOT.is_dir()
     violations: list[str] = []
     for path in CORE_ROOT.rglob("*.py"):
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
@@ -25,7 +26,8 @@ def test_analytics_core_does_not_import_bi() -> None:
 def test_pandas_is_confined_to_pandas_impl() -> None:
     source_root = Path(__file__).parents[2] / "src"
     violations = []
-    for path in source_root.rglob("*.py"):
+    sources = [source_root, CORE_ROOT, Path(__file__).parents[5] / "apps/forecast/backend/src"]
+    for path in (path for source in sources for path in source.rglob("*.py")):
         text = path.read_text(encoding="utf-8")
         normalized = str(path).replace("\\", "/")
         if ("import pandas" in text or "from pandas" in text) and "/engine/pandas_impl/" not in normalized:

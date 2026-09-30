@@ -83,7 +83,7 @@ for (const [demo, profile, metric, expected] of [["retail_demo", "retail_ecommer
     await page.keyboard.press("Enter");
     await expect(page.getByRole("combobox", { name: "Canal", exact: true })).toBeVisible();
     if (profile === "hospitality") {await page.getByText("Más filtros",{exact:true}).click(); await expect(page.getByLabel("Entrada desde", { exact: true })).toHaveAttribute("min", "2026-01-02");}
-    if (profile === "services") {const option=page.getByRole("combobox",{name:"Ver datos por"}); const value=await option.locator("option").filter({hasText:"Servicio"}).first().getAttribute("value"); await option.selectOption(value);await expect(page.getByRole("heading", { name: "Servicio", exact: true })).toBeVisible();}
+    if (profile === "services") {await page.getByText("Elegir qué explorar",{exact:true}).click();const option=page.getByRole("combobox",{name:"Ver datos por"}); const value=await option.locator("option").filter({hasText:"Servicio"}).first().getAttribute("value"); await option.selectOption(value);await expect(page.getByRole("heading", { name: "Servicio", exact: true }).last()).toBeVisible();}
     if (profile === "hospitality") {
       await expect(page.getByRole("heading", { name: "Tarifa diaria promedio", exact: true })).toHaveCount(0);
       await page.getByRole("combobox", { name: "Moneda", exact: true }).selectOption("ARS");

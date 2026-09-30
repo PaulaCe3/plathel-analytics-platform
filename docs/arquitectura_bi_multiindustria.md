@@ -51,6 +51,7 @@ Audiencia: quien implemente el proyecto (ChatGPT u otro). Este documento define 
 - **Sin** herramientas de monorepo (Nx/Turborepo/Bazel). Carpetas y dos CI jobs alcanzan.
 - `analytics_core` vive hoy dentro de `apps/bi/backend/src/` con la frontera protegida por `import-linter`. **Regla de promoción:** al empezar la app 2, se mueve a `packages/analytics_core/` (un `git mv` + dependencia por path). No antes.
 - Lo mismo con UI compartida: recién cuando exista la app 2, se extrae `packages/ui`.
+- **App 2 implementada:** forecasting temporal en `apps/forecast/backend/src/forecast`; core promovido a `packages/analytics_core/src/analytics_core` y UI a `packages/ui`. El shell Next existente sirve `/bi` y `/forecast`; `platform_api` compone routers sin dependencias entre productos.
 
 ---
 

@@ -1,0 +1,10 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+[project]
+name = "plathel-analytics-core"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = ["defusedxml>=0.7.1,<1", "charset-normalizer>=3.4,<4", "openpyxl>=3.1,<4", "pandas>=2.3,<4", "pyarrow>=20,<24", "pydantic>=2.11,<3", "pydantic-settings>=2.10,<3"]
+[tool.setuptools.packages.find]
+where = ["src"]

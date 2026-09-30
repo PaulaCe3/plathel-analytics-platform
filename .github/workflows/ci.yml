@@ -18,7 +18,7 @@ jobs:
           cache: pip
           cache-dependency-path: apps/bi/backend/pyproject.toml
       - name: Install backend dependencies
-        run: python -m pip install -e ".[dev]"
+        run: python -m pip install -e ../../../packages/analytics_core -e ../../forecast/backend -e ".[dev]"
       - name: Run backend tests
         run: pytest
       - name: Check dependency boundaries
@@ -60,7 +60,7 @@ jobs:
       - name: Install backend
         run: |
           python -m venv apps/bi/backend/.venv
-          apps/bi/backend/.venv/bin/python -m pip install -e "apps/bi/backend[dev]"
+          apps/bi/backend/.venv/bin/python -m pip install -e packages/analytics_core -e apps/forecast/backend -e "apps/bi/backend[dev]"
       - uses: pnpm/action-setup@v4
         with:
           version: 11.19.0
@@ -78,7 +78,7 @@ jobs:
       - name: Verify generated API contracts
         working-directory: apps/bi/frontend
         run: |
-          ../backend/.venv/bin/python -c "import json; from bi.api.main import create_app; print(json.dumps(create_app().openapi()))" > .openapi.json
+          ../backend/.venv/bin/python -c "import json; from platform_api import create_app; print(json.dumps(create_app().openapi()))" > .openapi.json
           node node_modules/openapi-typescript/bin/cli.js .openapi.json -o src/types/api.generated.ts
           git diff --exit-code -- src/types/api.generated.ts
       - name: Build E2E frontend

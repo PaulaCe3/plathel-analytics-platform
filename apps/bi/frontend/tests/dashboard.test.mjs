@@ -12,9 +12,9 @@ function compile(relative, replacements = {}) {
 }
 const adapter = compile("../src/components/charts/adapters/dashboard.ts");
 const messages = compile("../src/lib/i18n.ts");
-const primitives=compile("../src/components/ui/primitives.tsx", {"@/lib/i18n":messages});
+const primitives=compile("../../../../packages/ui/src/primitives.tsx", {"@/lib/i18n":messages});
 const presentation=compile("../src/lib/presentation.ts", {"@/lib/i18n":messages});
-const chart = compile("../src/components/charts/echarts-base.tsx");
+const chart = compile("../../../../packages/ui/src/charts/echarts-base.tsx");
 const { chartOption } = await import(adapter);
 const { DashboardRenderer, ErrorState, EmptyState } = await import(compile("../src/components/dashboard-renderer.tsx", { "@/components/charts/echarts-base": chart, "@/components/charts/adapters/dashboard": adapter, "@/lib/i18n": messages, "@/components/ui/primitives":primitives, "@/lib/presentation":presentation }));
 const render = (type, props) => renderToStaticMarkup(createElement(type, props));
@@ -69,3 +69,10 @@ test("column presentation distinguishes confident matches and ambiguous columns 
  assert.deepEqual([...readyColumnKeys(view,mappings)],["c01"]);assert.equal(JSON.stringify(mappings),before);view.conflicts=[{column_key:"c01"}];assert.equal(readyColumnKeys(view,mappings).size,0);
 });
 test("visible explanations translate field IDs without altering user values",()=>assert.equal(humanMessage("Se convirtió amount al tipo decimal."),"Se convirtió Importe al tipo decimal."));
+
+test("Hallazgos shows three initially and retains additional useful findings",()=>{
+ const items=Array.from({length:5},(_,i)=>({id:`finding${i}`,template_key:"insight.leader_share",params:{value:`Grupo ${i}`,share:.4},text:"internal"}));
+ const html=render(DashboardRenderer,{dashboard:dashboard([widget("insights")],{test:{status:"ok",insights:items}})});
+ assert.equal((html.split("Ver más")[0].match(/<li/g)??[]).length,3);
+ assert.match(html,/Grupo 4/);
+});

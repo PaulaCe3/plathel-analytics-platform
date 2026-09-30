@@ -55,6 +55,7 @@ class DashboardSpec(BaseModel, frozen=True):
     unavailable_metrics: list[UnavailableMetric]
     comparison_options: list[ComparisonOption]
     terminology: dict[str, str] = Field(default_factory=dict)
+    key_chart_ids: list[str] = Field(default_factory=list)
 
 
 class ChartSeries(BaseModel, frozen=True):
@@ -73,6 +74,7 @@ class ChartResult(BaseModel, frozen=True):
     comparison_series: list[ChartSeries] = Field(default_factory=list)
     meta: dict[str, Any] = Field(default_factory=dict)
     error_key: str | None = None
+    interpretation: Insight | None = None
 
 
 class TableResult(BaseModel, frozen=True):

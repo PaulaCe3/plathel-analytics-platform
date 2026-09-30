@@ -279,6 +279,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/forecast/datasets/{dataset_id}/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Options */
+        get: operations["options_api_v1_forecast_datasets__dataset_id__options_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/forecast/datasets/{dataset_id}/prediction": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Prediction */
+        post: operations["prediction_api_v1_forecast_datasets__dataset_id__prediction_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -321,6 +355,7 @@ export interface components {
             };
             /** Error Key */
             error_key?: string | null;
+            interpretation?: components["schemas"]["Insight"] | null;
         };
         /** ChartSeries */
         ChartSeries: {
@@ -526,6 +561,8 @@ export interface components {
             terminology?: {
                 [key: string]: string;
             };
+            /** Key Chart Ids */
+            key_chart_ids?: string[];
         };
         /** DataQualityReport */
         DataQualityReport: {
@@ -733,6 +770,105 @@ export interface components {
             field: string;
             /** Options */
             options: components["schemas"]["FilterOption"][];
+        };
+        /** ForecastChoice */
+        ForecastChoice: {
+            /** Field */
+            field: string;
+            /** Label */
+            label: string;
+            /** Available */
+            available: boolean;
+            /** Explanation */
+            explanation: string;
+        };
+        /** ForecastOptions */
+        ForecastOptions: {
+            /** Dataset Id */
+            dataset_id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "unavailable";
+            /** Explanation */
+            explanation: string;
+            /** Choices */
+            choices?: components["schemas"]["ForecastChoice"][];
+        };
+        /** ForecastPoint */
+        ForecastPoint: {
+            /** Period */
+            period: string;
+            /** Value */
+            value: number;
+        };
+        /** ForecastRequest */
+        ForecastRequest: {
+            /** Field */
+            field: string;
+            /**
+             * Horizon
+             * @default 3
+             */
+            horizon: number;
+        };
+        /** ForecastResult */
+        ForecastResult: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "unavailable";
+            /** Explanation */
+            explanation: string;
+            /** Field */
+            field: string;
+            /**
+             * Label
+             * @default
+             */
+            label: string;
+            /** Horizon */
+            horizon: number;
+            /** History */
+            history?: components["schemas"]["ForecastPoint"][];
+            /** Prediction */
+            prediction?: components["schemas"]["ForecastPoint"][];
+            /**
+             * Observations
+             * @default 0
+             */
+            observations: number;
+            /**
+             * Excluded Rows
+             * @default 0
+             */
+            excluded_rows: number;
+            /**
+             * Model
+             * @default Referencia estacional anual
+             */
+            model: string;
+            /**
+             * Evaluation Metric
+             * @default Error absoluto medio
+             */
+            evaluation_metric: string;
+            /** Evaluation Value */
+            evaluation_value?: number | null;
+            /**
+             * Evaluation Periods
+             * @default 6
+             */
+            evaluation_periods: number;
+            /**
+             * Interpretation
+             * @default
+             */
+            interpretation: string;
+            /** Limitations */
+            limitations?: string[];
         };
         /** HealthResponse */
         HealthResponse: {
@@ -3313,6 +3449,234 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unsupported Media Type */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    options_api_v1_forecast_datasets__dataset_id__options_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dataset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForecastOptions"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unsupported Media Type */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    prediction_api_v1_forecast_datasets__dataset_id__prediction_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dataset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForecastRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForecastResult"];
+                };
             };
             /** @description Bad Request */
             400: {

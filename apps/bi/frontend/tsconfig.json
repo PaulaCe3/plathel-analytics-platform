@@ -25,6 +25,18 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@plathel/ui/*": [
+        "../../../packages/ui/src/*"
+      ],
+      "react": [
+        "./node_modules/@types/react"
+      ],
+      "react/*": [
+        "./node_modules/@types/react/*"
+      ],
+      "echarts": [
+        "./node_modules/echarts"
       ]
     }
   },

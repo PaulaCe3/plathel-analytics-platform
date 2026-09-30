@@ -249,3 +249,7 @@ class PandasDataEngine:
 
     def date_coverage(self, canonical_path: Path, field: str) -> DateCoverage:
         return query_date_coverage(canonical_path, field)
+
+    def temporal_columns(self, canonical_path: Path) -> tuple[list[str], list[str]]:
+        from analytics_core.engine.pandas_impl.temporal import temporal_columns
+        return temporal_columns(canonical_path)

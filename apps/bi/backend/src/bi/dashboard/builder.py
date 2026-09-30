@@ -9,7 +9,6 @@ from analytics_core.engine.query import FilterClause, GroupBy, MeasureSpec, Quer
 from bi.dashboard.filters import derive_filters
 from bi.dashboard.templates import LayoutSpec, SectionTemplate, WidgetTemplate
 from bi.dashboard.widgets import ChartResult, ChartSeries, ComparisonOption, DashboardSpec, QualityResult, SectionSpec, WidgetSpec
-from bi.insights.config import SUMMARY_LIMIT
 from bi.insights.engine import InsightEngine
 from bi.insights.rules.universal import channel_dominance, data_quality_alert, growth_vs_previous, leader_share, peak_period, top_n_concentration
 from bi.metrics.availability import resolve_availability
@@ -101,12 +100,29 @@ class DashboardBuilder:
                 widgets.append(WidgetSpec(id=template.id, type=template.type, title_key=template.title_key, chart_variant=template.chart_variant, layout=template.layout))
             if widgets:
                 sections.append(SectionSpec(id=section.id, title_key=section.title_key, collapsed=section.collapsed, widgets=widgets))
+        key_charts = []
+        seen_dimensions = set()
+        candidates = [widget for section in sections for widget in section.widgets if widget.type in {"timeseries", "breakdown", "ranking"}]
+        for widget in sorted(candidates, key=lambda widget: {"timeseries": 0, "breakdown": 1, "ranking": 2}[widget.type]):
+            result = data.get(widget.id)
+            if not isinstance(result, ChartResult) or result.status != "ok" or not result.series:
+                continue
+            dimension = "time" if widget.type == "timeseries" else widget.title_key
+            if dimension in seen_dimensions:
+                continue
+            seen_dimensions.add(dimension)
+            points = result.series[0].points
+            useful = peak_period(points) if widget.type == "timeseries" else (top_n_concentration(points, dimension, top_n=3) + leader_share(points, dimension) if _has_nonnegative_points(result) and all(len(point)>2 and point[2] is not None for point in points) else [])
+            interpreted = InsightEngine().prioritize(useful, limit=1)
+            data[widget.id] = result.model_copy(update={"interpretation": interpreted[0] if interpreted else None})
+            if len(key_charts) < 4 and widget.id not in key_charts:
+                key_charts.append(widget.id)
         insights = self._insights(chart_points, quality, row_count, data, profile)
         if "insights_top" in data:
-            data["insights_top"] = {"status": "ok" if insights else "empty", "widget_id": "insights_top", "insights": [item.model_dump() for item in insights[:SUMMARY_LIMIT]]}
+            data["insights_top"] = {"status": "ok" if insights else "empty", "widget_id": "insights_top", "insights": [item.model_dump() for item in insights]}
         count = self.engine.run_query(canonical_path, QuerySpec(measures=[MeasureSpec(alias="rows", aggregation="count")], filters=filters)).rows[0]["rows"]
         comparison_options = self._comparison_options(current_range, coverage)
-        spec = DashboardSpec(profile_id=profile.id, sections=sections, filters=derive_filters(self.engine, canonical_path, fields, available, profile.bi.extra_filters if profile.bi else ()), unavailable_metrics=unavailable, comparison_options=comparison_options, terminology=profile.data.terminology.get("es", {}))
+        spec = DashboardSpec(profile_id=profile.id, sections=sections, filters=derive_filters(self.engine, canonical_path, fields, available, profile.bi.extra_filters if profile.bi else ()), unavailable_metrics=unavailable, comparison_options=comparison_options, terminology=profile.data.terminology.get("es", {}), key_chart_ids=key_charts)
         return spec, data, int(count), warnings
 
     def _with_comparison(self, result, metric_id, path, available, filters, time_field, comparison, current_range, coverage):

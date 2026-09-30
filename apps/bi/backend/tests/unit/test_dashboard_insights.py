@@ -51,4 +51,7 @@ def test_dashboard_builder_uses_same_engine_for_all_profiles(tmp_path):
             fields.append(FieldSpec(id="custom__segment", label_key="custom__segment", kind="dimension", dtype="string", scope="custom"))
         spec, data, filtered, _ = builder.build(profile=profile, canonical_path=path, fields=fields, available=available, filters=[], comparison=ComparisonSpec(mode="none"), time_field=time_field, grain="auto", quality=QualitySummary(), row_count=2)
         assert spec.profile_id == profile.id and filtered == 2 and "kpi_revenue" in data
+        assert len(spec.key_chart_ids) <= 4
+        assert len(spec.key_chart_ids) == len(set(spec.key_chart_ids))
+        assert all(data[chart_id].status == "ok" for chart_id in spec.key_chart_ids)
     assert any(section.id == "custom_dimensions" for section in spec.sections)

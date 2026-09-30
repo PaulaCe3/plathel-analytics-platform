@@ -4,9 +4,9 @@ MVP de Business Intelligence para Retail / E-commerce, Servicios, Hotelería y p
 
 ## Arquitectura y estructura
 
-La fuente de verdad es [la arquitectura oficial](docs/arquitectura_bi_multiindustria.md). `analytics_core` contiene ingesta, sesiones, canonical, validación, consultas y exports; nunca importa `bi`. Pandas/numpy quedan confinados a `engine/pandas_impl`. `bi` declara perfiles, métricas, dashboards e insights. API: routers → services → core. Frontend Next.js/ECharts renderiza resultados calculados en backend; sus contratos se generan desde OpenAPI.
+La fuente de verdad es [la arquitectura oficial](docs/arquitectura_bi_multiindustria.md). `analytics_core` contiene ingesta, sesiones, canonical, validación, consultas y exports; nunca importa `bi`. Pandas/numpy quedan confinados a `engine/pandas_impl`. `bi` declara perfiles, métricas, dashboards e insights. `forecast` consume el core y estima series temporales sin importar BI. `platform_api` compone ambos routers sobre el runtime protegido existente. API: routers → services → core. Frontend Next.js/ECharts renderiza resultados calculados en backend; sus contratos se generan desde OpenAPI.
 
-- `apps/bi/backend/src/analytics_core/`: motor genérico.
+- `packages/analytics_core/src/analytics_core/`: motor genérico.
 - `apps/bi/backend/src/bi/`: producto y API.
 - `apps/bi/backend/demo_data/`: demos sintéticas y mapping versionado.
 - `apps/bi/backend/tests/`: unitarios, integración y contratos.
@@ -22,9 +22,9 @@ Python 3.12+, Node.js 24 y pnpm 11.19.0. Backend necesita disco local temporal. 
 cd apps/bi/backend
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install -e ".[dev]"
+python -m pip install -e ../../../packages/analytics_core -e ../../forecast/backend -e ".[dev]"
 Copy-Item .env.example .env
-uvicorn bi.api.main:app --host 127.0.0.1 --port 8000 --workers 1 --no-access-log --no-proxy-headers
+uvicorn platform_api:app --host 127.0.0.1 --port 8000 --workers 1 --no-access-log --no-proxy-headers
 ```
 
 En otra terminal:
@@ -89,3 +89,11 @@ Playwright levanta backend en 8100 y frontend en 3100, un worker, sin sleeps de 
 - Permisos/disco: usar una carpeta temporal exclusiva, escribible y con espacio; revisar el request_id en logs seguros.
 
 [Documento de cierre técnico](docs/fase8_hardening.md). No hay autenticación, base de datos, colas ni almacenamiento cloud.
+
+## Predicciones
+
+`/forecast` comparte el shell de PLATHEL. Desde una sesión de Análisis, el enlace Predicciones lleva los datos ya preparados; no hay una segunda ingestión. `apps/forecast/backend/src/forecast` contiene contratos, servicio y referencia estacional mensual. `packages/ui` comparte controles, cabecera, EChartsBase, estilos y fuentes locales OFL.
+
+GET `/api/v1/forecast/datasets/{dataset_id}/options` informa compatibilidad. POST `.../prediction` recibe `field` y `horizon` (1–6 meses). Requiere 24 meses completos consecutivos, una única fecha, valores válidos y una sola moneda para importes. No rellena huecos ni mezcla monedas. Omite el mes actual y fechas futuras de forma explícita. El horizonte parte del último mes observado, incluso cuando el archivo es histórico. La referencia repite el mismo mes del año anterior; evalúa seis predicciones de un mes usando solo datos anteriores (error absoluto medio). No estima intervalos ni cambios de tendencia.
+
+Los contratos frontend se regeneran desde `platform_api.create_app().openapi()`. CI instala los paquetes locales y comprueba las cuatro fronteras de dependencias. No se añadieron microservicios ni bibliotecas ML.
