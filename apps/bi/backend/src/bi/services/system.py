@@ -13,6 +13,8 @@ def application_meta(settings: Settings) -> dict[str, object]:
         "max_rows": settings.max_rows,
         "max_columns": settings.max_columns,
         "ttl_minutes": settings.dataset_ttl_minutes,
+        "absolute_ttl_minutes": settings.absolute_session_ttl_minutes,
+        "preview_rows": settings.preview_default_rows,
         "allowed_extensions": list(settings.allowed_extensions),
         "default_locale": settings.default_locale,
         "languages": list(settings.languages),

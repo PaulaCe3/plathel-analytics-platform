@@ -1,4 +1,5 @@
 "use client";
+import { t } from "@/lib/i18n";
 
 import { useEffect, useState } from "react";
 
@@ -53,15 +54,14 @@ export function BackendStatus() {
         />
         <p className="font-medium text-slate-800">
           {connected
-            ? "Backend conectado"
+            ? t("backend-status.text1")
             : state.kind === "checking"
-              ? "Verificando backend"
-              : "Backend no disponible"}
+              ? t("backend-status.text2")
+              : t("backend-status.text3")}
         </p>
       </div>
       {connected ? (
-        <p className="mt-3 text-sm text-slate-500">
-          Límite inicial: {state.meta.max_file_mb} MB · Idioma: {state.meta.default_locale}
+        <p className="mt-3 text-sm text-slate-600">{t("backend-status.text4")}{state.meta.max_file_mb}{t("backend-status.text5")}{state.meta.default_locale}
         </p>
       ) : null}
     </div>

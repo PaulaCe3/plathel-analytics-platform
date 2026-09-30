@@ -6,9 +6,11 @@ import ts from "typescript";
 // Exercise the real TS helpers with native Response/Blob and a minimal download DOM.
 function compile(relative, replacement) {
   let output = ts.transpileModule(fs.readFileSync(new URL(relative, import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText;
+  if (output.includes('"@/lib/i18n"')) output = output.replace('"@/lib/i18n"', JSON.stringify(i18nUrl));
   if (replacement) output = output.replace('"./client"', JSON.stringify(replacement));
   return "data:text/javascript;base64," + Buffer.from(output).toString("base64");
 }
+const i18nUrl = compile("../src/lib/i18n.ts");
 const clientUrl = compile("../src/lib/api/client.ts");
 const { apiDownload, apiRequest } = await import(clientUrl);
 const { downloadDataset } = await import(compile("../src/lib/api/exports.ts", clientUrl));

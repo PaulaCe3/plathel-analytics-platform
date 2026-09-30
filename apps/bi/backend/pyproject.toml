@@ -8,6 +8,7 @@ version = "0.1.0"
 description = "Backend de ingesta para BI Multi-Industria"
 requires-python = ">=3.12"
 dependencies = [
+  "defusedxml>=0.7.1,<1",
   "fastapi>=0.116,<1",
   "charset-normalizer>=3.4,<4",
   "openpyxl>=3.1,<4",

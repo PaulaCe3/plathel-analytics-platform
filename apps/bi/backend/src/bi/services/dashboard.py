@@ -1,4 +1,6 @@
 """Dashboard application service; filters enter every QuerySpec from here."""
+from analytics_core.operations import session_operation
+from analytics_core.operations import heavy_operation
 
 from datetime import UTC, datetime
 
@@ -19,7 +21,7 @@ from bi.profiles.registry import profile_fields
 
 class DashboardService:
     def __init__(self, settings: Settings):
-        self.store = DatasetSessionStore(settings.dataset_storage_path, settings.dataset_ttl_minutes)
+        self.store = DatasetSessionStore(settings.dataset_storage_path, settings.dataset_ttl_minutes, settings.absolute_session_ttl_minutes)
         self.engine = PandasDataEngine()
 
     def _ready(self, dataset_id: str):
@@ -53,6 +55,8 @@ class DashboardService:
                 fields.append(FieldSpec(id=field_id, label_key=field_id, kind=kind, dtype="string" if kind == "dimension" else "decimal", scope="custom"))
         return fields
 
+    @session_operation
+    @heavy_operation
     def dashboard(self, dataset_id: str, request: DashboardRequest) -> DashboardResponse:
         session, profile = self._ready(dataset_id)
         available = set(session.canonical_columns)
@@ -68,6 +72,7 @@ class DashboardService:
         spec, data, filtered, warnings = builder.build(profile=profile, canonical_path=self.store.path(dataset_id, "canonical.parquet"), fields=fields, available=available, filters=request.filters, comparison=request.comparison, time_field=time_field, grain=request.grain, quality=session.quality_summary, row_count=session.canonical_row_count or session.row_count)
         return DashboardResponse(spec=spec, data=data, row_count=session.canonical_row_count or session.row_count, filtered_row_count=filtered, warnings=warnings, generated_at=datetime.now(UTC))
 
+    @session_operation
     def filter_options(self, dataset_id: str, field: str, query: str | None, limit: int) -> list[FilterOption]:
         session, profile = self._ready(dataset_id)
         fields = {item.id: item for item in self._fields(session, profile)}

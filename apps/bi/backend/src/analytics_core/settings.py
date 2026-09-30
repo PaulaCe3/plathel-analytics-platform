@@ -3,7 +3,7 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -39,8 +39,27 @@ class Settings(BaseSettings):
     )
     max_custom_dimensions: int = Field(default=10, ge=0, validation_alias="MAX_CUSTOM_DIMENSIONS")
     max_custom_measures: int = Field(default=5, ge=0, validation_alias="MAX_CUSTOM_MEASURES")
+    profile_sample_rows: int = Field(default=20000, ge=1, validation_alias="PROFILE_SAMPLE_ROWS")
+    heavy_concurrency: int = Field(default=2, ge=1, validation_alias="HEAVY_CONCURRENCY")
+    absolute_session_ttl_minutes: int = Field(default=240, ge=1, validation_alias="ABSOLUTE_SESSION_TTL_MINUTES")
+    reaper_interval_seconds: float = Field(default=120, ge=0.05, validation_alias="REAPER_INTERVAL_SECONDS")
+    uploads_per_hour: int = Field(default=10, ge=1, validation_alias="UPLOADS_PER_HOUR")
+    max_active_sessions: int = Field(default=100, ge=1, validation_alias="MAX_ACTIVE_SESSIONS")
+    max_sessions_per_ip: int = Field(default=10, ge=1, validation_alias="MAX_SESSIONS_PER_IP")
+    trusted_proxy_ips: tuple[str, ...] = ()
+    cors_origins: tuple[str, ...] = ()
+    max_zip_entries: int = Field(default=1000, ge=1, validation_alias="MAX_ZIP_ENTRIES")
+    max_zip_expanded_mb: int = Field(default=100, ge=1, validation_alias="MAX_ZIP_EXPANDED_MB")
+    max_zip_ratio: float = Field(default=100, ge=1, validation_alias="MAX_ZIP_RATIO")
+    multipart_overhead_bytes: int = Field(default=65536, ge=1024, validation_alias="MULTIPART_OVERHEAD_BYTES")
     allowed_extensions: tuple[str, ...] = (".csv", ".xlsx")
     languages: tuple[str, ...] = ("es",)
+
+    @model_validator(mode="after")
+    def restricted_origins(self):
+        if "*" in (self.cors_origins or (self.frontend_origin,)):
+            raise ValueError("CORS requires explicit origins")
+        return self
 
 
 @lru_cache

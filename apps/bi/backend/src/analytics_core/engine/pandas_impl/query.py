@@ -91,7 +91,15 @@ def _aggregate(frame: pd.DataFrame, measure: MeasureSpec, groups: list[str]):
 
 
 def run_query(canonical_path, query: QuerySpec) -> QueryResult:
-    frame = pd.read_parquet(canonical_path)
+    import pyarrow.parquet as pq
+    schema = set(pq.read_schema(canonical_path).names)
+    required = {clause.field for clause in query.filters} | {group.field for group in query.group_by}
+    for measure in query.measures:
+        required.update(measure.required_fields)
+        required.update(f"_valid__{field}" for field in measure.required_fields if f"_valid__{field}" in schema)
+    if not required and schema:
+        required.add("_row_id" if "_row_id" in schema else sorted(schema)[0])
+    frame = pd.read_parquet(canonical_path, columns=sorted(required & schema))
     for clause in query.filters:
         frame = _apply_filter(frame, clause)
     group_names: list[str] = []

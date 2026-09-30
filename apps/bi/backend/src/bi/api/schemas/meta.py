@@ -8,6 +8,8 @@ class MetaResponse(BaseModel):
     max_rows: int
     max_columns: int
     ttl_minutes: int
+    absolute_ttl_minutes: int
+    preview_rows: int
     allowed_extensions: list[str]
     default_locale: str
     languages: list[str]

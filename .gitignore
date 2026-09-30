@@ -34,3 +34,23 @@ Thumbs.db
 !.env.example
 
 .pnpm-store/
+
+# Local generated test artifacts
+**/test-results/
+**/playwright-report/
+**/.openapi.json
+
+**/.e2e-run.log
+**/.pytest-final.log
+**/.audit.json
+
+**/.build-run.log
+.env.*
+!.env.example
+
+**/.frontend-tests.log
+# Next dev generated local agent guidance
+/apps/bi/frontend/AGENTS.md
+/apps/bi/frontend/CLAUDE.md
+
+apps/bi/frontend/.e2e-final.log

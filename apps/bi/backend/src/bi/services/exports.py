@@ -1,4 +1,6 @@
 """Build a neutral export source from a real ready session and audited canonical."""
+from analytics_core.operations import session_operation
+from analytics_core.operations import heavy_operation, stage
 from datetime import UTC, datetime
 from dataclasses import dataclass
 from collections.abc import Iterator
@@ -22,15 +24,20 @@ class PreparedExport:
     chunks: Iterator[bytes]
     content_type: str
     filename: str
+    row_count: int
+    column_count: int
 
 
 class ExportService:
     def __init__(self, settings):
         self.settings = settings
-        self.store = DatasetSessionStore(settings.dataset_storage_path, settings.dataset_ttl_minutes)
+        self.store = DatasetSessionStore(settings.dataset_storage_path, settings.dataset_ttl_minutes, settings.absolute_session_ttl_minutes)
         self.engine = PandasDataEngine()
         self.registry = build_exporter_registry()
 
+    @session_operation
+    @heavy_operation
+    @stage("export")
     def prepare(self, dataset_id: str, options: ExportOptions) -> PreparedExport:
         session = self.store.get(dataset_id)
         if session.stage != "ready":
@@ -49,11 +56,23 @@ class ExportService:
             chunks = iter(exporter.export(source, options))
             # Trigger initialization before HTTP headers, so failures use AppError.
             first = next(chunks)
-            return PreparedExport(chain((first,), chunks), exporter.content_type, f"datos.{exporter.format}")
+            return PreparedExport(self._stream(dataset_id, chain((first,), chunks), options.format, int(count), len(source.headers)), exporter.content_type, f"datos.{exporter.format}", int(count), len(source.headers))
         except AppError:
             raise
         except Exception as exc:
             raise AppError(code="EXPORT_FAILED", http_status=500, message="No se pudo generar la exportación.") from exc
+
+    def _stream(self, dataset_id, chunks, format, rows, columns):
+        from contextlib import nullcontext
+        from analytics_core.logging import timed
+        if format == "xlsx":
+            yield from chunks
+            return
+        with self.store.lock(dataset_id):
+            with self.runtime.heavy() if getattr(self, "runtime", None) else nullcontext():
+                with timed("export") as counts:
+                    counts.update(rows=rows, columns=columns)
+                    yield from chunks
 
     def _source(self, session, options, filters, canonical, count):
         profile = get_profile(session.industry_id or "custom")

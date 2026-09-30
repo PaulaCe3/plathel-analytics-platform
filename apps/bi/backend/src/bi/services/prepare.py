@@ -1,4 +1,7 @@
 """Canonical preparation, validation, quality and confirmed cleaning."""
+from contextlib import nullcontext
+from analytics_core.operations import session_operation
+from analytics_core.operations import heavy_operation
 
 from analytics_core.canonical.derived import UNIVERSAL_DERIVED_RULES
 from analytics_core.cleaning.actions import validate_action_ids
@@ -16,7 +19,7 @@ from bi.profiles.registry import profile_fields
 
 class PrepareService:
     def __init__(self, settings: Settings) -> None:
-        self.store = DatasetSessionStore(settings.dataset_storage_path, settings.dataset_ttl_minutes)
+        self.store = DatasetSessionStore(settings.dataset_storage_path, settings.dataset_ttl_minutes, settings.absolute_session_ttl_minutes)
         self.engine = PandasDataEngine()
 
     def _context(self, dataset_id: str) -> tuple[DatasetSession, object, list]:
@@ -27,6 +30,7 @@ class PrepareService:
             raise AppError(code="PROFILE_NOT_FOUND", http_status=404, message="El perfil de industria no existe.") from exc
         return session, profile, profile_fields(profile)
 
+    @heavy_operation
     def _build(self, session: DatasetSession, profile, fields: list, actions: list[CleaningActionSpec]):
         try:
             validate_action_ids(actions)
@@ -45,8 +49,13 @@ class PrepareService:
         quality = self.engine.inspect_quality(self.store.path(session.dataset_id, "canonical.parquet"), result.parse_reports, list(profile.data.checks))
         return result, quality
 
+    @session_operation
     def validate(self, dataset_id: str) -> tuple[DatasetSession, ValidationReport, DataQualityReport]:
         session, profile, fields = self._context(dataset_id)
+        if session.stage == "validated" and session.validation_report:
+            with self.runtime.heavy() if getattr(self, "runtime", None) else nullcontext():
+                quality = self.engine.inspect_quality(self.store.path(dataset_id, "canonical.parquet"), session.parse_reports, list(profile.data.checks))
+            return session, session.validation_report, quality
         if session.stage != "mapped":
             raise AppError(code="STAGE_NOT_READY", http_status=409, message="El dataset debe estar mapeado antes de validarlo.")
         result, quality = self._build(session, profile, fields, [])
@@ -68,6 +77,7 @@ class PrepareService:
         self.store.save(session)
         return session, report, quality
 
+    @session_operation
     def clean(self, dataset_id: str, actions: list[CleaningActionSpec]) -> tuple[DatasetSession, DataQualityReport]:
         session, profile, fields = self._context(dataset_id)
         if session.stage not in {"validated", "ready"}:
@@ -92,6 +102,7 @@ class PrepareService:
         self.store.save(session)
         return session, quality
 
+    @session_operation
     def transformations(self, dataset_id: str) -> TransformationLog:
         return self.store.get(dataset_id).transformation_log
 

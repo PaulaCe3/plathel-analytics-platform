@@ -132,22 +132,9 @@ class DashboardBuilder:
         if metric_status.status == "unavailable":
             return ChartResult(status="unavailable", widget_id=widget.id, chart="timeseries" if widget.type == "timeseries" else "breakdown", x_type="time" if widget.type == "timeseries" else "category", meta={"reason_key": metric_status.warnings[0].message_key if metric_status.warnings else None})
         dimension = time_field if widget.type == "timeseries" else widget.dimension or ""
-        groups = self.engine.run_query(path, QuerySpec(measures=[MeasureSpec(alias="rows", aggregation="count_distinct", field=dimension)], group_by=[GroupBy(field=dimension, grain=grain if widget.type == "timeseries" else None)], filters=filters))
-        key = groups.columns[0]
         metric = widget.metric_id or "revenue"
-        values = []
-        for row in groups.rows:
-            value = row[key]
-            if widget.type == "timeseries":
-                if value is None or str(value) in {"NaT", "<NA>", "nan"}:
-                    continue
-                start, end = self._period_bounds(str(value), grain)
-                group_filter = FilterClause(field=dimension, op="between", values=[start, end])
-            else:
-                group_filter = FilterClause(field=dimension, op="in", values=[value])
-            evaluated = self.metric_engine.evaluate(path, metric, available, [*filters, group_filter])
-            if evaluated.value is not None:
-                values.append([str(value), evaluated.value])
+        key, groups = self.metric_engine.grouped(path, metric, available, filters, GroupBy(field=dimension, grain=grain if widget.type == "timeseries" else None))
+        values = [[str(label), value] for label, value in groups if (widget.type != "timeseries" or label is not None and str(label) not in {"NaT", "<NA>", "nan"}) and value is not None]
         if widget.type != "timeseries":
             values.sort(key=lambda point: (-point[1], point[0]))
         total = metric_status.value
@@ -155,7 +142,7 @@ class DashboardBuilder:
         if widget.top_n and len(points) > widget.top_n:
             selected = points[:widget.top_n]
             if widget.type != "timeseries":
-                selected_values = [row[key] for row in groups.rows if str(row[key]) in {point[0] for point in selected}]
+                selected_values = [label for label, _ in groups if str(label) in {point[0] for point in selected}]
                 other = self.metric_engine.evaluate(path, metric, available, [*filters, FilterClause(field=dimension, op="not_in", values=selected_values)])
                 if other.value is not None:
                     selected.append(["Otros", other.value, other.value / total if self.metrics.get(metric).additive and total else None])

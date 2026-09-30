@@ -1,11 +1,6 @@
-export type ErrorEnvelope = {
-  error: {
-    code: string;
-    message: string;
-    details: Array<Record<string, unknown>>;
-    request_id: string;
-  };
-};
+import { t } from "@/lib/i18n";
+import type { components } from "@/types/api.generated";
+export type ErrorEnvelope = components["schemas"]["ErrorResponse"];
 
 const API_BASE_URL = (
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000"
@@ -38,8 +33,9 @@ async function apiResponse(path: string, init: RequestInit = {}): Promise<Respon
     } catch {
       payload = undefined;
     }
+    if (typeof window !== "undefined" && ["DATASET_EXPIRED", "DATASET_NOT_FOUND"].includes(payload?.error?.code ?? "")) window.dispatchEvent(new Event("dataset-session-ended"));
     throw new ApiClientError(
-      payload?.error?.message ?? "No se pudo completar la solicitud.",
+      payload?.error?.message ?? t("client.text1"),
       response.status,
       payload,
     );

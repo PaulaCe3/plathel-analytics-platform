@@ -1,4 +1,5 @@
 """Mapping orchestration between generic core and profile registry."""
+from analytics_core.operations import session_operation
 
 from analytics_core.errors import AppError
 from analytics_core.mapping.matcher import suggest_mappings
@@ -15,7 +16,7 @@ from analytics_core.canonical.derived import resolvable_fields
 class MappingService:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
-        self.store = DatasetSessionStore(settings.dataset_storage_path, settings.dataset_ttl_minutes)
+        self.store = DatasetSessionStore(settings.dataset_storage_path, settings.dataset_ttl_minutes, settings.absolute_session_ttl_minutes)
 
     def _profile(self, profile_id: str):
         try:
@@ -23,6 +24,7 @@ class MappingService:
         except KeyError as exc:
             raise AppError(code="PROFILE_NOT_FOUND", http_status=404, message="El perfil de industria no existe.") from exc
 
+    @session_operation
     def view(self, dataset_id: str):
         session = self.store.get(dataset_id)
         profile = self._profile(session.industry_id or "custom")
@@ -34,6 +36,7 @@ class MappingService:
         mapped_columns = {mapping.column_key for mapping in session.mappings}
         return session, profile, fields, suggestions, conflicts, [column.key for column in session.columns if column.key not in mapped_columns]
 
+    @session_operation
     def save(self, dataset_id: str, profile_id: str, mappings: list[ColumnMapping]) -> DatasetSession:
         session = self.store.get(dataset_id)
         profile = self._profile(profile_id)
@@ -47,6 +50,7 @@ class MappingService:
         session.industry_id = profile_id
         session.mappings = mappings
         session.stage = "mapped"
+        self.store.path(dataset_id, "source.bin").unlink(missing_ok=True)
         self.store.path(dataset_id, "canonical.parquet").unlink(missing_ok=True)
         session.has_canonical = False
         session.validation_status = None

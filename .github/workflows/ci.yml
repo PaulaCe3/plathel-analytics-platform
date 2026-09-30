@@ -40,8 +40,59 @@ jobs:
           cache: pnpm
           cache-dependency-path: apps/bi/frontend/pnpm-lock.yaml
       - name: Install frontend dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
       - name: Lint frontend
         run: pnpm lint
+      - name: Typecheck frontend
+        run: pnpm typecheck
+      - name: Test frontend
+        run: pnpm test
       - name: Build frontend
         run: pnpm build
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install backend
+        run: |
+          python -m venv apps/bi/backend/.venv
+          apps/bi/backend/.venv/bin/python -m pip install -e "apps/bi/backend[dev]"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: apps/bi/frontend/pnpm-lock.yaml
+      - name: Install frontend
+        working-directory: apps/bi/frontend
+        run: pnpm install --frozen-lockfile
+      - name: Install browser
+        working-directory: apps/bi/frontend
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Verify generated API contracts
+        working-directory: apps/bi/frontend
+        run: |
+          ../backend/.venv/bin/python -c "import json; from bi.api.main import create_app; print(json.dumps(create_app().openapi()))" > .openapi.json
+          node node_modules/openapi-typescript/bin/cli.js .openapi.json -o src/types/api.generated.ts
+          git diff --exit-code -- src/types/api.generated.ts
+      - name: Build E2E frontend
+        working-directory: apps/bi/frontend
+        env:
+          NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:8100
+        run: pnpm build
+      - name: Test real flows and accessibility
+        working-directory: apps/bi/frontend
+        env:
+          E2E_PRODUCTION: "true"
+        run: pnpm test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-failures
+          path: apps/bi/frontend/test-results/

@@ -5,9 +5,9 @@ from bi.services.mapping import MappingService
 
 
 class DemoService:
-    def __init__(self, settings):
+    def __init__(self, settings, runtime=None, client_ip="local"):
         self.registry = DemoRegistry()
-        self.datasets = DatasetService(settings)
+        self.datasets = DatasetService(settings, runtime, client_ip)
         self.mapping = MappingService(settings)
 
     def list(self):

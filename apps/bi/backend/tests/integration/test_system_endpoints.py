@@ -17,6 +17,8 @@ def test_meta_comes_from_settings(client: TestClient) -> None:
         "max_rows": 250_000,
         "max_columns": 200,
         "ttl_minutes": 60,
+        "absolute_ttl_minutes": 240,
+        "preview_rows": 50,
         "allowed_extensions": [".csv", ".xlsx"],
         "default_locale": "es-AR",
         "languages": ["es"],

@@ -72,6 +72,55 @@ class MetricEngine:
         status = "empty" if value.value is None else "ok"
         return MetricResult(metric_id=metric.id, label_key=metric.label_key, status=status, value=value.value, format=output, excluded_rows=value.excluded_rows if excluded is None else excluded, warnings=list(value.warnings))
 
+    def grouped(self, path: Path, metric_id: str, available: set[str], filters: list[FilterClause], group: GroupBy):
+        """Evaluate the existing expression on grouped aggregates in one scan."""
+        metric = self.registry.get(metric_id)
+        selected = list(filters)
+        if isinstance(metric.expr, (Ratio, Sub)):
+            columns = set(pq.read_schema(path).names)
+            for choices in self.registry.requirement_options(metric_id):
+                field = next((field for field in sorted(choices) if field in available), None)
+                if field:
+                    selected.append(FilterClause(field=field, op="not_in", values=[None, ""]))
+                    if f"_valid__{field}" in columns:
+                        selected.append(FilterClause(field=f"_valid__{field}", op="in", values=[True]))
+        measures = []
+        def compile_expr(expr):
+            if isinstance(expr, MetricRef):
+                return compile_expr(self.registry.get(expr.id).expr)
+            if isinstance(expr, (Ratio, Sub)):
+                left, right = (expr.numerator, expr.denominator) if isinstance(expr, Ratio) else (expr.left, expr.right)
+                return ("ratio" if isinstance(expr, Ratio) else "sub", compile_expr(left), compile_expr(right))
+            field, fields = None, None
+            if isinstance(expr, Count):
+                aggregation = "count"
+            elif isinstance(expr, CountDistinct):
+                field = self._field(expr.value, available)
+                if field is None and expr.fallback is not None:
+                    return compile_expr(expr.fallback)
+                aggregation = "count_distinct"
+            elif isinstance(expr, (Sum, Mean, Min, Max)):
+                if isinstance(expr.value, RowMul):
+                    fields = (self._field(expr.value.left, available) or "", self._field(expr.value.right, available) or "")
+                    aggregation = "row_mul_sum"
+                else:
+                    field = self._field(expr.value, available)
+                    aggregation = {Sum: "sum", Mean: "mean", Min: "min", Max: "max"}[type(expr)]
+            else:
+                raise TypeError("Unsupported aggregate expression")
+            alias = f"m{len(measures)}"
+            measures.append(MeasureSpec(alias=alias, aggregation=aggregation, field=field, fields=fields))
+            return ("leaf", alias)
+        tree = compile_expr(metric.expr)
+        result = self.data_engine.run_query(path, QuerySpec(measures=measures, group_by=[group], filters=selected))
+        def value(node, row):
+            if node[0] == "leaf": return row.get(node[1])
+            left, right = value(node[1], row), value(node[2], row)
+            if left is None or right is None: return None
+            return (None if right == 0 else left / right) if node[0] == "ratio" else left - right
+        key = result.columns[0]
+        return key, [(row[key], value(tree, row)) for row in result.rows]
+
     def _has_mixed_currency(self, path: Path, filters: list[FilterClause]) -> bool:
         query = QuerySpec(measures=[MeasureSpec(alias="rows", aggregation="count")], group_by=[GroupBy(field="currency")], filters=[*filters, FilterClause(field="currency", op="not_in", values=[None, ""])], limit=2)
         result = self.data_engine.run_query(path, query)

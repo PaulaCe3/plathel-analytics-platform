@@ -31,6 +31,7 @@ def error_response(
 
 
 async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
+    logger.info("request rejected", extra={"code": exc.code, "status": exc.http_status})
     return error_response(
         code=exc.code,
         message=exc.message,

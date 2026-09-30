@@ -7,9 +7,12 @@ import logging
 from contextvars import ContextVar, Token
 from datetime import UTC, datetime
 from typing import Any
+from contextlib import contextmanager
+from time import perf_counter
+import traceback
 
 _request_id: ContextVar[str] = ContextVar("request_id", default="-")
-_EXTRA_FIELDS = ("method", "path", "status", "duration_ms")
+_EXTRA_FIELDS = ("method", "path", "status", "duration_ms", "stage", "rows", "columns", "code")
 
 
 def bind_request_id(request_id: str) -> Token[str]:
@@ -43,8 +46,12 @@ class JsonFormatter(logging.Formatter):
         }
         for field in _EXTRA_FIELDS:
             value = getattr(record, field, None)
-            if value is not None:
+            if value is not None or (field in {"rows", "columns"} and hasattr(record, "stage")):
                 payload[field] = value
+        if record.exc_info:
+            # Stack locations are useful; exception messages may contain cell data.
+            payload["stack"] = [{"function": frame.name, "line": frame.lineno} for frame in traceback.extract_tb(record.exc_info[2])]
+            payload["exception_type"] = record.exc_info[0].__name__
         return json.dumps(payload, ensure_ascii=False)
 
 
@@ -57,3 +64,13 @@ def configure_logging(level: str = "INFO") -> None:
     logger.addHandler(handler)
     logger.setLevel(level.upper())
     logger.propagate = False
+
+
+@contextmanager
+def timed(name):
+    counts = {"rows": None, "columns": None}
+    start = perf_counter()
+    try:
+        yield counts
+    finally:
+        logging.getLogger("data_analytics_platform.operations").info("stage completed", extra={"stage": name, "duration_ms": round((perf_counter() - start) * 1000, 2), **{key: value for key, value in counts.items() if key in {"rows", "columns"} }})
