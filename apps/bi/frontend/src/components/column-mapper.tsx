@@ -1,6 +1,9 @@
 "use client";
 import { t } from "@/lib/i18n";
 
+import { useRouter } from "next/navigation";
+import { Button, Select, Card, Status, LoadingState, ErrorState, SectionHeader } from "@/components/ui/primitives";
+import { readyColumnKeys, humanMessage, fieldLabel } from "@/lib/presentation";
 import { useEffect, useState } from "react";
 
 import { ColumnMapping, MappingView, changeDatasetProfile, getMapping, saveMapping } from "@/lib/api/mapping";
@@ -18,6 +21,8 @@ function proposedMappings(view: MappingView): ColumnMapping[] {
 }
 
 export function ColumnMapper({ datasetId }: { datasetId: string }) {
+  const router=useRouter();
+  const [error,setError]=useState("");
   const [profiles, setProfiles] = useState<ProfileSummary[]>([]);
   const [view, setView] = useState<MappingView | null>(null);
   const [mappings, setMappings] = useState<ColumnMapping[]>([]);
@@ -32,11 +37,12 @@ export function ColumnMapper({ datasetId }: { datasetId: string }) {
         setMappings(current.mappings.length ? current.mappings : proposedMappings(current));
         setStatus(t("column-mapper.text1"));
       })
-      .catch((error) => setStatus(error instanceof Error ? error.message : t("column-mapper.text2")))
+      .catch(() => setError(t("product.columnLoadError")))
       .finally(() => setBusy(false));
   }, [datasetId]);
 
   async function changeProfile(profileId: string) {
+    setError("");
     setBusy(true);
     setStatus(t("column-mapper.text3"));
     try {
@@ -45,8 +51,8 @@ export function ColumnMapper({ datasetId }: { datasetId: string }) {
       setView(current);
       setMappings(proposedMappings(current));
       setStatus(t("column-mapper.text4"));
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : t("column-mapper.text5"));
+    } catch {
+      setError(t("column-mapper.text5"));
     } finally {
       setBusy(false);
     }
@@ -61,58 +67,24 @@ export function ColumnMapper({ datasetId }: { datasetId: string }) {
   }
 
   async function save() {
-    if (!view) return;
-    setBusy(true);
-    setStatus(t("column-mapper.text6"));
-    try {
-      const saved = await saveMapping(datasetId, view.profile.id, mappings);
-      setView(saved);
-      setMappings(saved.mappings);
-      setStatus(t("column-mapper.text7"));
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : t("column-mapper.text8"));
-    } finally {
-      setBusy(false);
-    }
+    if(!view || busy)return;
+    setError("");setBusy(true);setStatus(t("column-mapper.text6"));
+    try{const saved=await saveMapping(datasetId,view.profile.id,mappings);setView(saved);setMappings(saved.mappings);setStatus(t("column-mapper.text7"));router.push(`/bi/${datasetId}/review`);}catch{setError(t("product.columnError"));}finally{setBusy(false);}
   }
-
-  if (!view) return <p role="status" className="rounded-xl bg-white p-6 text-slate-700">{status}</p>;
-  const mappingByColumn = new Map(mappings.map((mapping) => [mapping.column_key, mapping]));
-  const levelLabel = { required: t("column-mapper.text9"), recommended: t("column-mapper.text10"), optional: t("column-mapper.text11") };
-
-  return (
-    <div className="space-y-6">
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <label className="text-sm font-semibold text-slate-800">{t("column-mapper.text12")}<select aria-label={t("column-mapper.text13")} className="ml-3 rounded-lg border border-slate-300 px-3 py-2" value={view.profile.id} disabled={busy} onChange={(event) => changeProfile(event.target.value)}>
-            {profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}
-          </select>
-        </label>
-        <p className="mt-3 text-sm text-slate-600">{view.profile.description}</p>
-      </section>
-
-      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 p-6"><h2 className="text-xl font-semibold">{t("column-mapper.text14")}</h2><p className="mt-1 text-sm text-slate-600">{t("column-mapper.text15")}</p></div>
-        <div className="divide-y divide-slate-100">
-          {view.columns.map((column) => {
-            const suggestion = view.suggestions.find((item) => item.column_key === column.key)?.candidates?.[0];
-            const mapping = mappingByColumn.get(column.key);
-            const selected = mapping?.disposition === "canonical" ? `field:${mapping.target_field}` : mapping?.disposition ?? "ignored";
-            return <div key={column.key} className="grid gap-4 p-5 md:grid-cols-[1fr_1.2fr]">
-              <div><p className="font-semibold text-slate-900">{column.original_name || column.key} <span className="font-normal text-slate-600">({column.key})</span></p><p className="mt-1 text-sm text-slate-600">{t("column-mapper.text16")}{(column.sample ?? []).slice(0, 3).join(t("column-mapper.text17")) || t("column-mapper.text18")}</p></div>
-              <div>
-                <select aria-label={`Mapping de ${column.original_name}`} value={selected} onChange={(event) => updateColumn(column.key, event.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2">
-                  {view.profile.fields.map((field) => <option key={field.id} value={`field:${field.id}`}>{field.label} — {levelLabel[field.level as keyof typeof levelLabel]}</option>)}
-                  <option value="custom_dimension">{t("column-mapper.text19")}</option><option value="custom_measure">{t("column-mapper.text20")}</option><option value="ignored">{t("column-mapper.text21")}</option>
-                </select>
-                {suggestion && <div className="mt-2 text-xs text-slate-600"><strong>{suggestion.confidence === "high" ? t("column-mapper.text22") : suggestion.confidence === "medium" ? t("column-mapper.text23") : t("column-mapper.text24")}{t("column-mapper.text25")}{Math.round(suggestion.score * 100)} %).</strong> {(suggestion.reasons ?? []).join(t("column-mapper.text26"))}</div>}
-              </div>
-            </div>;
-          })}
-        </div>
-      </section>
-
-      {view.conflicts.length > 0 && <section className="rounded-xl border border-red-200 bg-red-50 p-4"><h2 className="font-semibold">{t("column-mapper.text27")}</h2>{view.conflicts.map((conflict, index) => <p key={`${conflict.code}-${index}`} className="mt-1 text-sm">{conflict.severity.toUpperCase()}: {conflict.message}</p>)}</section>}
-      <div className="flex flex-wrap items-center gap-4"><button disabled={busy} onClick={save} className="rounded-xl bg-slate-950 px-5 py-3 font-semibold text-white disabled:opacity-40">{t("column-mapper.action2")}</button>{view.stage === "mapped" && <a href={`/bi/${datasetId}/review`} className="rounded-xl border border-slate-300 px-5 py-3 font-semibold">{t("column-mapper.action3")}</a>}<span role="status" className="text-sm text-slate-600">{status}</span></div>
-    </div>
-  );
+  if (!view) return error ? <ErrorState message={error} onRetry={()=>window.location.reload()}/> : <LoadingState message={status}/>;
+  const mappingByColumn=new Map(mappings.map(mapping=>[mapping.column_key,mapping]));
+  const ready=readyColumnKeys(view,mappings);
+  function publicLabel(fieldId:string) {const field=view!.profile.fields.find(item=>item.id===fieldId);const automatic=fieldId.replaceAll("_"," ").replace(/\b\w/g,char=>char.toUpperCase());return field && field.label!==automatic ? field.label : fieldLabel(fieldId);}
+  function renderColumn(column:MappingView["columns"][number]) {
+   const suggestion=view!.suggestions.find(item=>item.column_key===column.key)?.candidates?.[0];const mapping=mappingByColumn.get(column.key);const selected=mapping?.disposition === "canonical" ? `field:${mapping.target_field}` : mapping?.disposition ?? "ignored";
+   const name=column.original_name || t("product.fieldFallback");
+   return <div key={column.key} className="pl-column-row"><div><h3>{name}</h3><p>{t("product.examples")}: {(column.sample ?? []).slice(0,3).join(" · ") || t("column-mapper.text18")}</p></div><div><label htmlFor={`column-${column.key}`}>{t("product.whatColumn")}</label><Select id={`column-${column.key}`} aria-label={`${t("home.columns")}: ${name}`} value={selected} disabled={busy} onChange={event=>updateColumn(column.key,event.target.value)}>{view!.profile.fields.map(field=><option key={field.id} value={`field:${field.id}`}>{publicLabel(field.id)}</option>)}<option value="custom_dimension">{t("product.otherData")}</option><option value="custom_measure">{t("product.numericValue")}</option><option value="ignored">{t("product.unusedColumn")}</option></Select>{suggestion && <details><summary>{t("product.why")}</summary><p>{t("product.autoDetected")}: {publicLabel(suggestion.field_id)}. {humanMessage((suggestion.reasons ?? []).join(" "))}</p></details>}</div></div>;
+  }
+  return <div aria-busy={busy}><div className="pl-profile"><label>{t("column-mapper.text12")} <Select aria-label={t("column-mapper.text13")} value={view.profile.id} disabled={busy} onChange={event=>changeProfile(event.target.value)}>{profiles.map(profile=><option key={profile.id} value={profile.id}>{profile.name}</option>)}</Select></label><p>{view.profile.description}</p></div>
+   <div className="pl-column-summary"><strong>{view.columns.length} {t("product.columnsFound")}</strong><Status tone="success">{ready.size} {t("product.identified")}</Status><Status tone={ready.size<view.columns.length ? "warning" : "info"}>{view.columns.length-ready.size} {t("product.needReview")}</Status></div>
+   {ready.size>0 && <Card><SectionHeader title={`${ready.size} ${t("product.readyColumns")}`}/><ul className="pl-compact-columns">{view.columns.filter(column=>ready.has(column.key)).slice(0,7).map(column=><li key={column.key}><span aria-hidden="true">✓ </span>{publicLabel(mappingByColumn.get(column.key)?.target_field ?? "")}</li>)}</ul><details className="pl-details"><summary>{t("product.seeAll")}</summary>{view.columns.filter(column=>ready.has(column.key)).map(renderColumn)}</details></Card>}
+   {ready.size<view.columns.length && <Card><SectionHeader title={t("product.needReview")}/>{view.columns.filter(column=>!ready.has(column.key)).map(renderColumn)}</Card>}
+   {view.conflicts.length>0 && <div role="alert" className="pl-state pl-state--error">{view.conflicts.map((conflict,i)=><p key={i}>{humanMessage(conflict.message,Object.fromEntries(view.columns.map(column=>[column.key,column.original_name])))}</p>)}</div>}
+   {error && <ErrorState message={error}/>}<div className="pl-actions"><a className="pl-button pl-button--secondary" href="/bi">{t("product.back")}</a><Button busy={busy} onClick={save}>{busy ? t("column-mapper.text6") : t("product.continue")}</Button><span role="status">{error ? "" : status}</span></div>
+  </div>;
 }

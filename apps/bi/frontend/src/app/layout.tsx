@@ -4,8 +4,8 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "BI Multi-Industria",
-  description: "Plataforma de Business Intelligence multi-industria",
+  title: "PLATHEL · Business Intelligence",
+  description: "PLATHEL — DATA · AI · AUTOMATION. Convertí tus datos en decisiones claras.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

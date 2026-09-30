@@ -9,11 +9,13 @@ export function chartOption(result: ChartResult, label = "Valor"): EChartsOption
   const values = points.map((point) => Number(point[1] ?? 0));
   const horizontal = result.chart !== "timeseries";
   return {
+    color: ["#404245", "#5F5D5C", "#B9BABA"],
+    textStyle: { color: "#404245", fontFamily: "Arial, Helvetica, sans-serif" },
     legend: { data: [label], top: 0 },
     tooltip: { trigger: "axis" },
     grid: { left: 48, right: 24, top: 40, bottom: 48, containLabel: true },
     xAxis: horizontal ? { type: "value" } : { type: "category", data: categories },
     yAxis: horizontal ? { type: "category", data: categories } : { type: "value" },
-    series: [{ name: label, type: result.chart === "timeseries" ? "line" : "bar", data: values, smooth: result.chart === "timeseries", areaStyle: result.chart === "timeseries" ? {} : undefined }],
+    series: [{ name: label, type: result.chart === "timeseries" ? "line" : "bar", data: values, smooth: result.chart === "timeseries", areaStyle: result.chart === "timeseries" ? { color: "#D1D3D3", opacity: 0.45 } : undefined }],
   };
 }

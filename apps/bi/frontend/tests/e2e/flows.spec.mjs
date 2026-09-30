@@ -14,18 +14,18 @@ async function accessible(page) {
   expect(results.violations.map(({ id, nodes }) => ({ id, nodes: nodes.map((node) => node.target) }))).toEqual([]);
 }
 async function clean(page) {
-  await expect(page.getByRole("button", { name: "Aplicar selección" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Preparar mis datos" })).toBeEnabled();
   await accessible(page);
-  await page.getByRole("button", { name: "Aplicar selección" }).focus();
+  await page.getByRole("button", { name: "Preparar mis datos" }).focus();
   await page.keyboard.press("Enter");
-  await page.getByRole("link", { name: "Ver dashboard" }).click();
-  await expect(page.getByRole("heading", { name: "Dashboard", exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Resumen ejecutivo" })).toBeVisible();
+  await page.getByRole("link", { name: "Ver análisis" }).click();
+  await expect(page.getByRole("heading", { name: "Tu análisis", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Resumen", exact: true })).toBeVisible();
   await expect(page.locator("canvas").first()).toBeVisible();
 }
 function kpi(page, name) { return page.getByRole("article").filter({ has: page.getByRole("heading", { name, exact: true }) }).first(); }
 async function exportFile(page, testInfo, format, expectedRows) {
-  await page.getByText("Exportar", { exact: true }).click();
+  await page.getByRole("button", {name:"Exportar",exact:true}).click();
   await page.getByLabel("Formato de exportación").selectOption(format);
   await accessible(page);
   const downloadEvent = page.waitForEvent("download");
@@ -42,6 +42,7 @@ async function exportFile(page, testInfo, format, expectedRows) {
   } else {
     execFileSync(python, ["-c", "import sys; from openpyxl import load_workbook; w=load_workbook(sys.argv[1],read_only=True); assert w.sheetnames==['Datos','Registro de cambios','Resumen']; assert sum(1 for _ in w['Datos'].values)==int(sys.argv[2])+1; w.close()", output, String(expectedRows)]);
   }
+  await page.getByRole("button", {name:"Cerrar",exact:true}).click();
 }
 async function responsive(page) {
   for (const width of [390, 768, 1280]) {
@@ -63,16 +64,17 @@ for (const [demo, profile, metric, expected] of [["retail_demo", "retail_ecommer
     if (process.env.E2E_PRODUCTION === "true") expect(response.headers()["content-security-policy"]).not.toContain("unsafe-eval");
     await accessible(page);
     await page.getByLabel("Archivo de datos").setInputFiles({ name: "propio.csv", mimeType: "text/csv", buffer: Buffer.from(source) });
-    await page.getByRole("button", { name: "Subir archivo" }).click();
-    await page.getByRole("link", { name: "Seleccionar rubro y mapear columnas" }).click();
+    await page.getByRole("button", { name: "Continuar" }).click();
+    await page.getByRole("link", { name: "Revisar columnas" }).click();
     const dataset = page.url().split("/").at(-2);
     await page.getByRole("combobox", { name: "Rubro", exact: true }).selectOption(profile);
     await expect(page.getByRole("status").filter({ hasText: "Las sugerencias se recalcularon" })).toBeVisible();
     const headers = source.split(/\r?\n/)[0].split(",");
-    for (const [index, mapping] of metadata.preset_mapping.entries()) await page.getByLabel(`Mapping de ${headers[index]}`, { exact: true }).selectOption(mapping.disposition === "canonical" ? `field:${mapping.target_field}` : mapping.disposition);
+    if(await page.getByText("Ver todas", {exact:true}).count()) await page.getByText("Ver todas", {exact:true}).click();
+    for (const [index, mapping] of metadata.preset_mapping.entries()) await page.getByLabel(`Revisar columnas: ${headers[index]}`, { exact: true }).selectOption(mapping.disposition === "canonical" ? `field:${mapping.target_field}` : mapping.disposition);
     await accessible(page);
-    await page.getByRole("button", { name: "Guardar y continuar" }).focus(); await page.keyboard.press("Enter");
-    await page.getByRole("link", { name: "Revisar calidad" }).click();
+    await page.getByRole("button", { name: "Continuar", exact: true }).focus(); await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(/review$/);
     await clean(page);
     await expect(kpi(page, metric)).toContainText(expected);
     const filterSummary = page.getByText("Filtros", { exact: true });
@@ -80,8 +82,8 @@ for (const [demo, profile, metric, expected] of [["retail_demo", "retail_ecommer
     await expect(page.getByRole("combobox", { name: "Canal", exact: true })).toBeHidden();
     await page.keyboard.press("Enter");
     await expect(page.getByRole("combobox", { name: "Canal", exact: true })).toBeVisible();
-    if (profile === "hospitality") await expect(page.getByLabel("Entrada desde", { exact: true })).toHaveAttribute("min", "2026-01-02");
-    if (profile === "services") await expect(page.getByRole("heading", { name: "Servicio", exact: true })).toBeVisible();
+    if (profile === "hospitality") {await page.getByText("Más filtros",{exact:true}).click(); await expect(page.getByLabel("Entrada desde", { exact: true })).toHaveAttribute("min", "2026-01-02");}
+    if (profile === "services") {const option=page.getByRole("combobox",{name:"Ver datos por"}); const value=await option.locator("option").filter({hasText:"Servicio"}).first().getAttribute("value"); await option.selectOption(value);await expect(page.getByRole("heading", { name: "Servicio", exact: true })).toBeVisible();}
     if (profile === "hospitality") {
       await expect(page.getByRole("heading", { name: "Tarifa diaria promedio", exact: true })).toHaveCount(0);
       await page.getByRole("combobox", { name: "Moneda", exact: true }).selectOption("ARS");
@@ -99,13 +101,13 @@ for (const [demo, profile, metric, expected] of [["retail_demo", "retail_ecommer
     await responsive(page);
     await page.getByRole("button", { name: "Terminar y borrar mis datos" }).focus(); await page.keyboard.press("Enter");
     await expect(page).toHaveURL(/\/bi\?deleted=1/);
-    await expect(page.getByRole("status").filter({ hasText: "La sesión y sus datos fueron eliminados" })).toBeVisible();
+    await expect(page.getByRole("status").filter({ hasText: "La sesión anterior fue eliminada" })).toBeVisible();
     expect((await request.get(`${api}/datasets/${dataset}`)).status()).toBe(404);
   });
 }
 test("demo real, filtro y XLSX", async ({ page }, testInfo) => {
   await page.goto("/bi");
-  await page.getByRole("button", { name: "Retail / E-commerce", exact: true }).click();
+  await page.getByRole("button", { name: "Probar Retail", exact: true }).click();
   await expect(page).toHaveURL(/review$/);
   await clean(page);
   await expect(page.getByText("Modo demo · Datos sintéticos.", { exact: false })).toBeVisible();
@@ -130,9 +132,9 @@ test("error al aplicar filtro se anuncia y permite reintentar", async ({ page, r
   expect((await request.put(`${api}/datasets/${dataset}/cleaning`, { data: { actions: [] } })).status()).toBe(200);
   await page.goto(`/bi/${dataset}/dashboard`);
   await expect(kpi(page, "Ingresos")).toContainText("264.000");
-  await page.route("**/api/v1/datasets/*/dashboard", (route) => route.fulfill({ status: 500, contentType: "application/json", body: JSON.stringify({ error: { code: "INTERNAL_ERROR", message: "No se pudo aplicar el filtro.", details: [], request_id: "test" } }) }), { times: 1 });
+  await page.route("**/api/v1/datasets/*/dashboard", (route) => route.fulfill({ status: 500, contentType: "application/json", body: JSON.stringify({ error: { code: "INTERNAL_ERROR", message: "No pudimos aplicar los filtros.", details: [], request_id: "test" } }) }), { times: 1 });
   await page.getByRole("combobox", { name: "Canal", exact: true }).selectOption("Online");
-  await expect(page.getByRole("main").getByRole("alert")).toContainText("No se pudo aplicar el filtro.");
+  await expect(page.getByRole("main").getByRole("alert")).toContainText("No pudimos aplicar los filtros.");
   await accessible(page);
   await page.getByRole("button", { name: "Reintentar", exact: true }).focus(); await page.keyboard.press("Enter");
   await expect(kpi(page, "Ingresos")).toContainText("176.000");

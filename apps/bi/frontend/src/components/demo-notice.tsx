@@ -8,5 +8,5 @@ export function DemoNotice({ datasetId }: { datasetId: string }) {
   const [isDemo, setIsDemo] = useState(false);
   useEffect(() => { let active = true; getDataset(datasetId).then((dataset) => { if (active) setIsDemo(Boolean(dataset.demo_id)); }).catch(() => {}); return () => { active = false; }; }, [datasetId]);
   if (!isDemo) return null;
-  return <aside aria-label={t("demo-notice.text1")} className="rounded-xl bg-blue-50 p-4 text-sm text-blue-950">{t("demo-notice.text2")}<Link className="underline" href={`/bi/${datasetId}/mapping`}>{t("demo-notice.text3")}</Link></aside>;
+  return <aside aria-label={t("demo-notice.text1")} className="pl-demo-notice">{t("demo-notice.text2")}<Link className="underline" href={`/bi/${datasetId}/mapping`}>{t("demo-notice.text3")}</Link></aside>;
 }

@@ -1,0 +1,32 @@
+import {test,expect} from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
+const api="http://127.0.0.1:8100/api/v1";
+async function accessible(page){expect((await new AxeBuilder({page}).analyze()).violations).toEqual([]);}
+async function demo(request){const response=await request.post(`${api}/datasets/demo`,{data:{demo_id:"retail_demo"}});expect(response.status()).toBe(201);return (await response.json()).dataset_id;}
+test("PLATHEL: header, metadata, columns summaries and responsive stepper",async({page,request})=>{
+ const id=await demo(request);try{
+ await page.goto(`/bi/${id}/mapping`);await expect(page).toHaveTitle(/PLATHEL/);await expect(page.getByRole("heading",{name:"Revisemos tus columnas"})).toBeVisible();await expect(page.getByRole("navigation",{name:"Tu progreso"}).locator('[aria-current="step"]')).toContainText("Columnas");
+ await expect(page.getByText(/columnas encontradas/)).toBeVisible();await expect(page.getByText(/columnas listas/)).toBeVisible();await expect(page.getByRole("combobox",{name:/Revisar columnas:/}).first()).toBeHidden();
+ for(const width of [1280,768,390]){await page.setViewportSize({width,height:900});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await accessible(page);}
+ await page.getByText("Ver todas",{exact:true}).click();await expect(page.getByRole("combobox",{name:/Revisar columnas:/}).first()).toBeVisible();await expect(page.getByRole("main")).not.toContainText(/\(c0[1-9]\)|Alta confianza|DATA SIGHT/);
+ }finally{await request.delete(`${api}/datasets/${id}`);}
+});
+test("PLATHEL: ambiguous columns remain visible and custom dispositions stay explicit",async({page,request})=>{
+ await page.goto("/bi");await page.getByLabel("Archivo de datos").setInputFiles({name:"propio.csv",mimeType:"text/csv",buffer:Buffer.from("Edad,Purchase Amount (USD)\n55,46.90\n42,48.10\n31,62.10")});await page.getByRole("button",{name:"Continuar",exact:true}).click();const link=page.getByRole("link",{name:"Revisar columnas",exact:true});const href=await link.getAttribute("href");const id=href.split('/')[2];
+ try{await link.click();await expect(page.getByRole("heading",{name:"necesitan revisión",exact:true})).toBeVisible();await expect(page.getByRole("combobox",{name:"Revisar columnas: Edad",exact:true})).toBeVisible();for(const name of ["Otro dato","Valor numérico","No usar esta columna"]) expect(await page.getByRole("combobox",{name:"Revisar columnas: Edad",exact:true}).locator("option").allTextContents()).toContain(name);await accessible(page);}finally{await request.delete(`${api}/datasets/${id}`);}
+});
+test("PLATHEL: destructive changes require keyboard confirmation and retain observation details",async({page,request})=>{
+ const id=await demo(request);const validated=await request.post(`${api}/datasets/${id}/validate`);const report=await validated.json();report.cleaning_plan.actions=[{id:"drop_exact_duplicates",description:"internal description",destructive:true,selected:false,estimated_rows_affected:2,estimated_values_affected:0,params:{}}];
+ try{await page.route("**/validate",route=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify(report)}));await page.goto(`/bi/${id}/review`);await expect(page.getByRole("heading",{name:"Preparemos tus datos"})).toBeVisible();const checkbox=page.getByRole("checkbox",{name:/Eliminar filas duplicadas/});await expect(checkbox).not.toBeChecked();await checkbox.check();
+ let cleaningRequests=0;page.on("request",req=>{if(req.url().endsWith('/cleaning') && req.method()==='PUT')cleaningRequests++;});await page.getByRole("button",{name:"Preparar mis datos"}).click();await expect(page.getByRole("dialog",{name:"Confirmar eliminación"})).toBeVisible();expect(cleaningRequests).toBe(0);await accessible(page);await page.keyboard.press("Escape");await expect(page.getByRole("dialog")).not.toBeVisible();expect(cleaningRequests).toBe(0);await expect(page.getByRole("button",{name:"Preparar mis datos"})).toBeFocused();
+ await page.getByRole("button",{name:"Preparar mis datos"}).click();await page.getByRole("button",{name:"Confirmar y preparar"}).click();await expect(page.getByRole("link",{name:"Ver análisis"})).toBeVisible();expect(cleaningRequests).toBe(1);await expect(page.getByRole("heading",{name:"Cambios realizados"})).toBeVisible();await accessible(page);
+ }finally{await request.delete(`${api}/datasets/${id}`);}
+});
+test("PLATHEL: focused analysis, exploration and accessible export dialog",async({page,request})=>{
+ const id=await demo(request);try{await request.post(`${api}/datasets/${id}/validate`);await request.put(`${api}/datasets/${id}/cleaning`,{data:{actions:[]}});await page.goto(`/bi/${id}/dashboard`);await expect(page.getByRole("heading",{name:"Tu análisis",exact:true})).toBeVisible();await expect(page.locator("canvas").first()).toBeVisible();expect(await page.locator(".pl-kpi-grid").first().getByRole("article").count()).toBeLessThanOrEqual(6);expect(await page.locator("canvas").count()).toBeLessThanOrEqual(2);
+ const explore=page.getByRole("combobox",{name:"Ver datos por"});const options=await explore.locator("option").evaluateAll(nodes=>nodes.map(node=>({value:node.value,label:node.textContent})));await explore.selectOption(options.at(-1).value);await expect(page.getByRole("heading",{name:options.at(-1).label,exact:true})).toBeVisible();
+ await expect(page.getByRole("combobox",{name:"Producto",exact:true})).toBeHidden();await page.getByText("Más filtros",{exact:true}).click();await expect(page.getByRole("combobox",{name:"Producto",exact:true})).toBeVisible();
+ await page.getByRole("button",{name:"Exportar",exact:true}).click();await expect(page.getByRole("dialog",{name:"Exportar",exact:true})).toBeVisible();await expect(page.getByLabel("Encabezados de exportación")).toBeHidden();await page.getByText("Opciones avanzadas",{exact:true}).click();await expect(page.getByLabel("Encabezados de exportación")).toBeVisible();await accessible(page);await page.keyboard.press("Escape");await expect(page.getByRole("button",{name:"Exportar",exact:true})).toBeFocused();
+ for(const width of [1280,768,390]){await page.setViewportSize({width,height:900});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await accessible(page);}
+ }finally{await request.delete(`${api}/datasets/${id}`);}
+});

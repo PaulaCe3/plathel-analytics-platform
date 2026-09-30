@@ -1,4 +1,4 @@
-# DATA SIGHT BI Multi-Industria
+# PLATHEL — Business Intelligence
 
 MVP de Business Intelligence para Retail / E-commerce, Servicios, Hotelería y perfil personalizado. Permite cargar CSV/XLSX, confirmar el significado de columnas, revisar calidad y transformaciones, filtrar dashboards y exportar CSV/XLSX. Fases 0–8; no incorpora V1.1.
 

@@ -1,84 +1,27 @@
 "use client";
-import { t } from "@/lib/i18n";
-
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { t } from "@/lib/i18n";
+import { actionLabel, fieldLabel, humanMessage } from "@/lib/presentation";
 import { DemoNotice } from "./demo-notice";
-
+import { Button, Card, Dialog, Status, SectionHeader, ErrorState, LoadingState } from "@/components/ui/primitives";
 import { CleaningAction, CleaningResult, TransformationLog, ValidateResult, applyCleaning, getTransformations, validateDataset } from "@/lib/api/prepare";
-
-export function DatasetReview({ datasetId }: { datasetId: string }) {
-  const [report, setReport] = useState<ValidateResult | null>(null);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [cleaned, setCleaned] = useState<CleaningResult | null>(null);
-  const [log, setLog] = useState<TransformationLog | null>(null);
-  const [status, setStatus] = useState(t("dataset-review.action1"));
-  const [busy, setBusy] = useState(true);
-
-  useEffect(() => {
-    validateDataset(datasetId)
-      .then((result) => {
-        setReport(result);
-        setSelected(new Set((result.cleaning_plan.actions ?? []).filter((action) => action.selected && !action.destructive).map((action) => action.id)));
-        setStatus(t("dataset-review.text1"));
-      })
-      .catch((error) => setStatus(error instanceof Error ? error.message : t("dataset-review.text2")))
-      .finally(() => setBusy(false));
-  }, [datasetId]);
-
-  function toggle(action: CleaningAction) {
-    setSelected((current) => {
-      const next = new Set(current);
-      if (next.has(action.id)) next.delete(action.id); else next.add(action.id);
-      return next;
-    });
-  }
-
-  async function apply() {
-    if (!report) return;
-    const actions = (report.cleaning_plan.actions ?? []).filter((action) => selected.has(action.id));
-    if (actions.some((action) => action.destructive) && !window.confirm(t("dataset-review.text3"))) return;
-    setBusy(true);
-    setStatus(t("dataset-review.text4"));
-    try {
-      const result = await applyCleaning(datasetId, actions);
-      setCleaned(result);
-      setLog(await getTransformations(datasetId));
-      setStatus(t("dataset-review.text5"));
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : t("dataset-review.text6"));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  if (!report) return <p role="status" className="rounded-2xl bg-white p-6 shadow-sm">{status}</p>;
-  const severityLabel = { error: t("dataset-review.text7"), warning: t("dataset-review.text8"), info: t("dataset-review.text9") };
-
-  return <div className="space-y-6">
-    <DemoNotice datasetId={datasetId} />
-    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">{t("dataset-review.text10")}</p>
-      <h2 className="mt-2 text-2xl font-semibold">{t("dataset-review.text11")}</h2>
-      <p className="mt-2 text-slate-700">{t("dataset-review.text12")}<strong>{report.validation.valid ? t("dataset-review.text13") : t("dataset-review.text14")}</strong>. {report.validation.blocking_count}{t("dataset-review.text15")}{report.validation.warning_count}{t("dataset-review.text16")}</p>
-      <div className="mt-4 space-y-2">{(report.validation.issues ?? []).map((issue) => <div key={issue.id} className="rounded-lg border border-slate-200 p-3 text-sm"><strong>{severityLabel[issue.severity]}:</strong> {issue.message} {issue.field_id && <span>{t("dataset-review.text17")}{issue.field_id}.</span>} {issue.count != null && <span>{t("dataset-review.text18")}{issue.count}.</span>}</div>)}</div>
-    </section>
-
-    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">{t("dataset-review.text19")}</p>
-      <h2 className="mt-2 text-2xl font-semibold">{t("dataset-review.text20")}</h2>
-      <p className="mt-2 text-slate-700">{report.quality.summary?.total_issues ?? 0}{t("dataset-review.text21")}{report.quality.summary?.error_count ?? 0}{t("dataset-review.text22")}{report.quality.summary?.warning_count ?? 0}{t("dataset-review.text23")}{report.quality.summary?.info_count ?? 0}{t("dataset-review.text24")}</p>
-      <div className="mt-4 space-y-2">{(report.quality.issues ?? []).map((issue) => <div key={issue.id} className="rounded-lg bg-slate-50 p-3 text-sm"><strong>{severityLabel[issue.severity]} · {issue.code}</strong><p>{issue.message}</p>{issue.count != null && <p>{issue.count}{t("dataset-review.text25")}{issue.ratio != null ? ` (${Math.round(issue.ratio * 100)} %)` : ""}{t("dataset-review.text26")}</p>}</div>)}</div>
-    </section>
-
-    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">{t("dataset-review.text27")}</p>
-      <h2 className="mt-2 text-2xl font-semibold">{t("dataset-review.text28")}</h2>
-      <div className="mt-4 space-y-3">{(report.cleaning_plan.actions ?? []).map((action) => <label key={action.id} className="flex cursor-pointer gap-3 rounded-xl border border-slate-200 p-4"><input type="checkbox" checked={selected.has(action.id)} onChange={() => toggle(action)} /><span><strong>{action.description}</strong><span className="block text-sm text-slate-600">{action.destructive ? t("dataset-review.text29") : t("dataset-review.text30")}</span></span></label>)}</div>
-      <button disabled={busy || !report.validation.valid} onClick={apply} className="mt-5 rounded-xl bg-slate-950 px-5 py-3 font-semibold text-white disabled:opacity-40">{t("dataset-review.action2")}</button>
-      <p role="status" className="mt-3 text-sm text-slate-600">{status}</p>
-    </section>
-
-    {(cleaned || log) && <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><p className="text-xs font-semibold uppercase tracking-wide text-slate-600">{t("dataset-review.text31")}</p><h2 className="mt-2 text-2xl font-semibold">{t("dataset-review.text32")}</h2><ol className="mt-4 space-y-3">{(log?.transformations ?? cleaned?.transformation_log.transformations ?? []).map((item) => <li key={item.id} className="rounded-lg bg-slate-50 p-3"><strong>{item.seq}. {item.summary}</strong><p className="text-sm text-slate-600">{item.rows_before} → {item.rows_after}{t("dataset-review.text33")}{item.automatic ? t("dataset-review.text34") : t("dataset-review.text35")}</p></li>)}</ol><Link href={`/bi/${datasetId}/dashboard`} className="mt-5 inline-block rounded-xl bg-blue-700 px-5 py-3 font-semibold text-white">{t("dataset-review.action3")}</Link></section>}
-  </div>;
+export function DatasetReview({datasetId}:{datasetId:string}) {
+ const [report,setReport]=useState<ValidateResult|null>(null);const [selected,setSelected]=useState<Set<string>>(new Set());const [cleaned,setCleaned]=useState<CleaningResult|null>(null);const [log,setLog]=useState<TransformationLog|null>(null);const [busy,setBusy]=useState(true);const [status,setStatus]=useState(t("dataset-review.action1"));const [error,setError]=useState("");const [confirm,setConfirm]=useState(false);
+ useEffect(()=>{let active=true;validateDataset(datasetId).then(result=>{if(!active)return;setReport(result);setSelected(new Set((result.cleaning_plan.actions ?? []).filter(action=>action.selected && !action.destructive).map(action=>action.id)));setStatus("");}).catch(()=>{if(active)setError(t("product.retryData"));}).finally(()=>{if(active)setBusy(false);});return ()=>{active=false;};},[datasetId]);
+ function toggle(action:CleaningAction){setSelected(current=>{const next=new Set(current);if(next.has(action.id))next.delete(action.id);else next.add(action.id);return next;});}
+ async function apply(confirmed=false){if(!report || busy || cleaned)return;const actions=(report.cleaning_plan.actions ?? []).filter(action=>selected.has(action.id));if(actions.some(action=>action.destructive) && !confirmed){setConfirm(true);return;}setConfirm(false);setBusy(true);setError("");setStatus(t("product.preparing"));try{const result=await applyCleaning(datasetId,actions);setCleaned(result);setLog(await getTransformations(datasetId));setStatus(t("product.prepared"));}catch{setError(t("product.retryData"));setStatus("");}finally{setBusy(false);}}
+ if(!report)return error ? <ErrorState message={error} onRetry={()=>window.location.reload()}/> : <LoadingState message={status}/>;
+ const actions=report.cleaning_plan.actions ?? [];const relevant=actions.filter(action=>action.estimated_rows_affected>0 || action.estimated_values_affected>0);const other=actions.filter(action=>!relevant.includes(action));const issues=[...(report.validation.issues ?? []),...(report.quality.issues ?? [])];
+ function actionRow(action:CleaningAction){return <label className="pl-action-row" key={action.id}><input type="checkbox" checked={selected.has(action.id)} disabled={busy || !!cleaned} onChange={()=>toggle(action)}/><span><strong>{actionLabel(action.id)}</strong><p>{action.estimated_values_affected>0 ? `${action.estimated_values_affected} ${t("product.values")}` : `${action.estimated_rows_affected} ${t("product.rows")}`}</p><small>{action.destructive ? t("product.removes") : t("product.safeChange")}</small></span></label>;}
+ const transformations=log?.transformations ?? cleaned?.transformation_log.transformations ?? [];
+ return <div aria-busy={busy}><DemoNotice datasetId={datasetId}/><p className="mb-6 text-sm text-slate-600">{t("product.noRowsRemoved")}</p>
+ {!report.validation.valid && <ErrorState message={t("dataset-review.text14")}/>}
+ {!report.validation.valid && <div>{(report.validation.issues ?? []).filter(issue=>issue.severity==="error").map(issue=><p className="pl-observation" key={issue.id}>{humanMessage(issue.message)}</p>)}</div>}
+ <Card><SectionHeader title={t("product.suggested")}/>{relevant.length ? relevant.map(actionRow) : <p>{t("product.noChanges")}</p>}{other.length>0 && <details className="pl-details"><summary>{t("product.details")}</summary>{other.map(actionRow)}</details>}
+ <div className="pl-actions">{cleaned ? <Link className="pl-button pl-button--primary" href={`/bi/${datasetId}/dashboard`}>{t("product.viewAnalysis")}</Link> : <Button busy={busy} disabled={!report.validation.valid} onClick={()=>apply()}>{busy ? t("product.preparing") : t("product.prepare")}</Button>}<span role="status">{status}</span></div>{error && <ErrorState message={error}/>}</Card>
+ <details className="pl-details"><summary>{issues.length} {t("product.observations")} · {t("product.details")}</summary><div>{issues.length===0 ? <Status tone="success">{t("product.qualityReady")}</Status> : issues.map((issue,index)=><div className="pl-observation" key={`${issue.id}-${index}`}><Status tone={issue.severity==="error" ? "error" : issue.severity==="warning" ? "warning" : "info"}>{t(`product.issue${issue.severity==="error"?"Error":issue.severity==="warning"?"Warning":"Info"}`)}</Status><p>{humanMessage(issue.message)}</p>{issue.field_id && <p>{fieldLabel(issue.field_id)}</p>}{issue.count!=null && <p>{issue.count} {t("product.rows")}</p>}</div>)}</div></details>
+ {(cleaned || log) && <Card><SectionHeader title={t("product.changes")}/><ul className="pl-compact-columns">{[...new Set(transformations.map(item=>item.action_id))].map(id=><li key={id}><span aria-hidden="true">✓ </span>{actionLabel(id)}</li>)}</ul><details className="pl-details"><summary>{t("product.details")}</summary><ol>{transformations.map(item=><li className="pl-observation" key={item.id}><strong>{actionLabel(item.action_id)}</strong><p>{item.columns?.map(field=>fieldLabel(field)).join(" · ")}</p><p>{humanMessage(item.summary)}</p><p>{t("product.rowsBefore")}: {item.rows_before} · {t("product.rowsAfter")}: {item.rows_after} {t("product.rows")}</p></li>)}</ol></details></Card>}
+ <Dialog open={confirm} onClose={()=>setConfirm(false)} title={t("product.confirmRemoval")}><p>{t("product.confirmRemovalText")}</p><ul className="my-4">{actions.filter(action=>selected.has(action.id) && action.destructive).map(action=><li key={action.id}>{actionLabel(action.id)} · {action.estimated_rows_affected} {t("product.rows")}</li>)}</ul><div className="pl-actions"><Button variant="secondary" onClick={()=>setConfirm(false)}>{t("product.cancel")}</Button><Button onClick={()=>apply(true)}>{t("product.confirm")}</Button></div></Dialog>
+ </div>;
 }

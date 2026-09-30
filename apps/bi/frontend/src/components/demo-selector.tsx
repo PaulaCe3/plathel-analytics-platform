@@ -1,4 +1,5 @@
 "use client";
+import { HomeIcon } from "@/components/home-sections";
 import { t } from "@/lib/i18n";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -9,18 +10,20 @@ export function DemoSelector() {
   const [demos, setDemos] = useState<DemoSummary[]>([]);
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
+  const [active, setActive] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
   useEffect(() => { getDemos().then(setDemos).catch((error) => setStatus(error instanceof Error ? error.message : t("demo-selector.text1"))); }, []);
   async function openDemo(id: string) {
-    setBusy(true); setStatus(t("demo-selector.text2"));
+    setActive(id); setFailed(false); setBusy(true); setStatus(t("demo-selector.text2"));
     try {
       const dataset = await createDemo(id);
       router.push(`/bi/${dataset.dataset_id}/${dataset.stage === "mapped" ? "review" : "mapping"}`);
-    } catch (error) { setStatus(error instanceof Error ? error.message : t("demo-selector.text3")); setBusy(false); }
+    } catch (error) { setStatus(error instanceof Error ? error.message : t("demo-selector.text3")); setBusy(false); setFailed(true); }
   }
-  return <section className="rounded-2xl border border-blue-200 bg-blue-50 p-6">
-    <h2 className="text-xl font-semibold">{t("demo-selector.action1")}</h2>
-    <p className="mt-2 text-sm text-slate-700">{t("demo-selector.text4")}</p>
-    <div className="mt-4 flex flex-wrap gap-3">{demos.map((demo) => <button key={demo.id} disabled={busy} title={demo.description} onClick={() => openDemo(demo.id)} className="rounded-xl bg-blue-700 px-5 py-3 font-semibold text-white disabled:opacity-40">{demo.name}</button>)}</div>
-    <p role="status" className="mt-3 text-sm text-slate-700">{status}</p>
+  const kinds = ["retail", "services", "hospitality"];
+  return <section id="demos" tabIndex={-1} className="home-section" aria-labelledby="demos-title" aria-busy={busy}>
+    <h2 id="demos-title">{t("home.demos")}</h2><p className="home-demo-intro">{t("home.demosIntro")}</p>
+    <div className="home-demo-grid">{kinds.map(kind=>{const demo=demos.find(d=>d.id === `${kind}_demo`);return <article key={kind} className="home-demo-card"><HomeIcon kind={kind}/><h3>{t(`home.${kind}`)}</h3><p>{t(`home.${kind}Desc`)}</p><button disabled={busy || !demo} onClick={()=>demo && openDemo(demo.id)}>{active === demo?.id && busy ? t("home.preparing") : t(`home.${kind}Cta`)} <span aria-hidden="true">→</span></button></article>;})}</div>
+    <p role={failed ? "alert" : "status"} className={`home-feedback ${failed ? "home-error" : ""}`}>{status}</p>
   </section>;
 }

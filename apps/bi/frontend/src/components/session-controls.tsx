@@ -1,4 +1,5 @@
 "use client";
+import { Button, Toast } from "@/components/ui/primitives";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getDataset, deleteDataset } from "@/lib/api/datasets";
@@ -11,13 +12,13 @@ export function SessionControls({ datasetId }: { datasetId: string }) {
   useEffect(() => {
     const expired = () => router.replace("/bi?expired=1");
     window.addEventListener("dataset-session-ended", expired);
-    getDataset(datasetId).then((dataset) => setExpiry(new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeStyle: "short" }).format(new Date(dataset.expires_at)))).catch((error) => setStatus(error.message));
+    getDataset(datasetId).then((dataset) => setExpiry(new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeStyle: "short" }).format(new Date(dataset.expires_at)))).catch(() => setStatus(t("product.sessionError")));
     return () => window.removeEventListener("dataset-session-ended", expired);
   }, [datasetId, router]);
   async function finish() {
     setBusy(true); setStatus(t("session.deleting"));
     try { await deleteDataset(datasetId); router.replace("/bi?deleted=1"); }
-    catch (error) { setStatus(error instanceof Error ? error.message : t("request.failed")); setBusy(false); }
+    catch { setStatus(t("product.sessionError")); setBusy(false); }
   }
-  return <aside aria-label={t("session-controls.text1")} className="mx-auto max-w-6xl px-6 pt-6"><p className="text-sm">{t("session.privacy")} {expiry && `Vencimiento por inactividad: ${expiry}.`}</p><button disabled={busy} onClick={finish} className="mt-3 rounded-lg border border-slate-500 px-4 py-2">{t("session.delete")}</button><p role="status">{status}</p></aside>;
+  return <div className="pl-session-controls"><details className="pl-privacy-details"><summary>{t("product.privacy")}</summary><div><p>{t("session.privacy")}</p>{expiry && <p>{t("product.expiry")}: {expiry}.</p>}</div></details><Button variant="ghost" busy={busy} onClick={finish}>{t("session.delete")}</Button><Toast tone="error">{busy ? null : status}</Toast></div>;
 }
