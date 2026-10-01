@@ -8,7 +8,9 @@ from analytics_core.engine.base import DataEngine
 from analytics_core.engine.query import FilterClause, GroupBy, MeasureSpec, QuerySpec
 from bi.dashboard.filters import derive_filters
 from bi.dashboard.templates import LayoutSpec, SectionTemplate, WidgetTemplate
-from bi.dashboard.widgets import ChartResult, ChartSeries, ComparisonOption, DashboardSpec, QualityResult, SectionSpec, WidgetSpec
+from bi.dashboard.widgets import (ChartResult, ChartSeries, ComparisonOption, DashboardSpec, QualityResult,
+                                  SectionSpec, SegmentComparisonResult, SegmentComparisonSpec,
+                                  SegmentMetricResult, WidgetSpec)
 from bi.insights.engine import InsightEngine
 from bi.insights.business import business_insights
 from bi.insights.rules.universal import leader_share, peak_period, top_n_concentration
@@ -63,6 +65,37 @@ class DashboardBuilder:
             sections.append(SectionTemplate(id="industry_specific", title_key="section.industry_specific", widgets=tuple(WidgetTemplate(**widget.model_dump()) for widget in bi.widgets)))
         sections.append(SectionTemplate(id="data_quality", title_key="section.data_quality", widgets=(WidgetTemplate(id="quality", type="quality", title_key="section.data_quality", layout=LayoutSpec(span=12)),)))
         return sections
+
+    def compare(self, *, profile, canonical_path: Path, available: set[str], fields: list,
+                filters: list[FilterClause], selection: SegmentComparisonSpec) -> SegmentComparisonResult:
+        dimensions = {field.id for field in fields if field.id in available and field.kind in {"dimension", "identifier"}}
+        base = dict(dimension=selection.dimension, value_a=selection.value_a, value_b=selection.value_b)
+        if selection.dimension not in dimensions:
+            return SegmentComparisonResult(**base, status="unavailable", reason_key="comparison.dimension_unavailable")
+        common = [item for item in filters if item.field != selection.dimension]
+        clauses = [FilterClause(field=selection.dimension, op="in", values=[value])
+                   for value in (selection.value_a, selection.value_b)]
+        count = lambda clause: int(self.engine.run_query(canonical_path, QuerySpec(
+            measures=[MeasureSpec(alias="rows", aggregation="count")], filters=[*common, clause])).rows[0]["rows"])
+        if any(count(clause) == 0 for clause in clauses):
+            return SegmentComparisonResult(**base, status="unavailable", reason_key="comparison.value_unavailable")
+        enabled = list(profile.bi.kpi_order if profile.bi else ())
+        enabled += [metric for metric in (profile.bi.metrics if profile.bi else ()) if metric not in enabled]
+        metrics = []
+        for metric_id in enabled:
+            try:
+                left = self.metric_engine.evaluate(canonical_path, metric_id, available, [*common, clauses[0]])
+                right = self.metric_engine.evaluate(canonical_path, metric_id, available, [*common, clauses[1]])
+            except KeyError:
+                continue
+            if left.status != "ok" or right.status != "ok" or left.value is None or right.value is None:
+                continue
+            if left.format.type != right.format.type or left.format.currency != right.format.currency:
+                continue
+            metrics.append(SegmentMetricResult(metric_id=metric_id, label_key=left.label_key,
+                value_a=left.value, value_b=right.value, format=left.format))
+        return SegmentComparisonResult(**base, status="ok" if metrics else "unavailable", metrics=metrics,
+            reason_key=None if metrics else "comparison.metrics_unavailable")
 
     def build(self, *, profile, canonical_path: Path, fields: list, available: set[str], filters: list[FilterClause], comparison: ComparisonSpec, time_field: str, grain: str, quality, row_count: int) -> tuple[DashboardSpec, dict[str, Any], int, list[dict]]:
         enabled = set(profile.bi.metrics if profile.bi else ()) & {metric.id for metric in self.metrics.all()}

@@ -2,9 +2,9 @@
 
 from datetime import datetime
 from typing import Any, Literal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
-from bi.metrics.models import MetricResult, UnavailableMetric
+from bi.metrics.models import MetricResult, OutputSpec, UnavailableMetric
 from bi.insights.engine import Insight
 from bi.metrics.models import ComparisonSpec
 from analytics_core.engine.query import FilterClause
@@ -100,12 +100,42 @@ class InsightsResult(BaseModel, frozen=True):
     insights: list[Insight] = Field(default_factory=list)
 
 
+class SegmentComparisonSpec(BaseModel, frozen=True):
+    dimension: str
+    value_a: str
+    value_b: str
+
+    @model_validator(mode="after")
+    def distinct_values(self) -> "SegmentComparisonSpec":
+        if self.value_a == self.value_b:
+            raise ValueError("Compared values must be different")
+        return self
+
+
+class SegmentMetricResult(BaseModel, frozen=True):
+    metric_id: str
+    label_key: str
+    value_a: float | int
+    value_b: float | int
+    format: OutputSpec
+
+
+class SegmentComparisonResult(BaseModel, frozen=True):
+    status: Literal["ok", "unavailable"]
+    dimension: str
+    value_a: str
+    value_b: str
+    metrics: list[SegmentMetricResult] = Field(default_factory=list)
+    reason_key: str | None = None
+
+
 class DashboardResponse(BaseModel):
     spec: DashboardSpec
     data: dict[str, MetricResult | ChartResult | InsightsResult | TableResult | QualityResult | Any]
     row_count: int
     filtered_row_count: int
     warnings: list[dict[str, Any]] = Field(default_factory=list)
+    segment_comparison: SegmentComparisonResult | None = None
     generated_at: datetime
 
 
@@ -114,3 +144,4 @@ class DashboardRequest(BaseModel):
     comparison: ComparisonSpec = ComparisonSpec()
     time_field: str | None = None
     grain: Literal["auto", "day", "week", "month", "quarter", "year"] = "auto"
+    segment_comparison: SegmentComparisonSpec | None = None

@@ -8,4 +8,6 @@ F2 · Insight Engine 2.0 completado y probado. Tipos, filtros, validación y lí
 
 F3 · Detección de anomalías completada y probada. Método robusto, protecciones y límites en [[CURRENT_STATE]] y [Insights automáticos](../arquitectura_bi_multiindustria.md#14-insights-automáticos-determinísticos).
 
+F4 · Exploración y comparación completado y probado. Interacción, contexto de filtros y límites en [[CURRENT_STATE]].
+
 No hay trabajo futuro adicional aprobado ni fechas comprometidas.

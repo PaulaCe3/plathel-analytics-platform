@@ -538,6 +538,7 @@ export interface components {
              * @enum {string}
              */
             grain: "auto" | "day" | "week" | "month" | "quarter" | "year";
+            segment_comparison?: components["schemas"]["SegmentComparisonSpec"] | null;
         };
         /** DashboardResponse */
         DashboardResponse: {
@@ -554,6 +555,7 @@ export interface components {
             warnings?: {
                 [key: string]: unknown;
             }[];
+            segment_comparison?: components["schemas"]["SegmentComparisonResult"] | null;
             /**
              * Generated At
              * Format: date-time
@@ -1251,6 +1253,45 @@ export interface components {
             collapsed: boolean;
             /** Widgets */
             widgets: components["schemas"]["WidgetSpec"][];
+        };
+        /** SegmentComparisonResult */
+        SegmentComparisonResult: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "unavailable";
+            /** Dimension */
+            dimension: string;
+            /** Value A */
+            value_a: string;
+            /** Value B */
+            value_b: string;
+            /** Metrics */
+            metrics?: components["schemas"]["SegmentMetricResult"][];
+            /** Reason Key */
+            reason_key?: string | null;
+        };
+        /** SegmentComparisonSpec */
+        SegmentComparisonSpec: {
+            /** Dimension */
+            dimension: string;
+            /** Value A */
+            value_a: string;
+            /** Value B */
+            value_b: string;
+        };
+        /** SegmentMetricResult */
+        SegmentMetricResult: {
+            /** Metric Id */
+            metric_id: string;
+            /** Label Key */
+            label_key: string;
+            /** Value A */
+            value_a: number;
+            /** Value B */
+            value_b: number;
+            format: components["schemas"]["OutputSpec"];
         };
         /** SourceSettings */
         SourceSettings: {

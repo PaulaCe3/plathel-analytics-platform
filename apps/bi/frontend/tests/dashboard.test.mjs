@@ -134,3 +134,16 @@ test("F3 presents backend anomaly copy inside the shared three-finding limit",()
  assert.equal((html.match(/<li/g)??[]).length,3);
  assert.doesNotMatch(html,/modified_z|significativo|porque/);
 });
+
+test("F4 renders structured segment comparison without declaring a winner",()=>{
+ const d=dashboard([],{ });d.segment_comparison={status:"ok",dimension:"channel",value_a:"Online",value_b:"Local",metrics:[{metric_id:"revenue",label_key:"metric.revenue",value_a:180000,value_b:84000,format:{type:"currency",currency:"ARS",decimals:0}},{metric_id:"transactions",label_key:"metric.transactions",value_a:820,value_b:490,format:{type:"integer",decimals:0}}]};
+ const html=render(DashboardRenderer,{dashboard:d,mode:"dashboard"});
+ assert.match(html,/Canal: Online vs\. Local/);assert.match(html,/180[\s\S]*84/);assert.match(html,/820[\s\S]*490/);
+ assert.doesNotMatch(html,/ganador|mejor|peor/);
+});
+
+test("F4 keeps Otros non-interactive and selected table rows pressed",()=>{
+ const chartWidget={...widget("ranking"),title_key:"field.category"};const d=dashboard([chartWidget],{test:{status:"ok",chart:"ranking",series:[{key:"revenue",points:[["A",10,.5],["Otros",10,.5]]}],meta:{dimension:"category",has_others_bucket:true}}});d.spec.filters=[{id:"category",field:"category",type:"multi_select",label_key:"field.category",options:[]}];
+ const html=render(DashboardRenderer,{dashboard:d,mode:"dashboard",filters:[{field:"category",op:"in",values:["A"]}],onFilter:()=>{}});
+ assert.match(html,/aria-pressed="true"[^>]*aria-label="Filtrar por A"/);assert.doesNotMatch(html,/Filtrar por Otros/);
+});

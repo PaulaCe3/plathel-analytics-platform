@@ -70,7 +70,11 @@ class DashboardService:
             raise AppError(code="FILTER_FIELD_INVALID", http_status=422, message="Uno o más filtros usan campos no disponibles.")
         builder = DashboardBuilder(self.engine, build_profile_registry(profile, session.mappings))
         spec, data, filtered, warnings = builder.build(profile=profile, canonical_path=self.store.path(dataset_id, "canonical.parquet"), fields=fields, available=available, filters=request.filters, comparison=request.comparison, time_field=time_field, grain=request.grain, quality=session.quality_summary, row_count=session.canonical_row_count or session.row_count)
-        return DashboardResponse(spec=spec, data=data, row_count=session.canonical_row_count or session.row_count, filtered_row_count=filtered, warnings=warnings, generated_at=datetime.now(UTC))
+        segment_comparison = builder.compare(profile=profile, canonical_path=self.store.path(dataset_id, "canonical.parquet"),
+            available=available, fields=fields, filters=request.filters, selection=request.segment_comparison) if request.segment_comparison else None
+        return DashboardResponse(spec=spec, data=data, row_count=session.canonical_row_count or session.row_count,
+            filtered_row_count=filtered, warnings=warnings, segment_comparison=segment_comparison,
+            generated_at=datetime.now(UTC))
 
     @session_operation
     def filter_options(self, dataset_id: str, field: str, query: str | None, limit: int) -> list[FilterOption]:
