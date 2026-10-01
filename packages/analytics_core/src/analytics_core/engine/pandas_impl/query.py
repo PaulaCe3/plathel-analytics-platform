@@ -24,7 +24,20 @@ def _apply_filter(frame: pd.DataFrame, clause: FilterClause) -> pd.DataFrame:
     series = frame[clause.field]
     values = clause.values
     if pd.api.types.is_datetime64_any_dtype(series.dtype):
-        values = [pd.to_datetime(value, errors="coerce") for value in values]
+        parsed = []
+        for index, value in enumerate(values):
+            timestamp = pd.to_datetime(value, errors="coerce")
+            date_only = isinstance(value, date) and not isinstance(value, datetime) or isinstance(value, str) and len(value) == 10
+            if not pd.isna(timestamp):
+                timezone = series.dt.tz
+                if timezone is not None:
+                    timestamp = timestamp.tz_localize(timezone) if timestamp.tzinfo is None else timestamp.tz_convert(timezone)
+                elif timestamp.tzinfo is not None:
+                    timestamp = timestamp.tz_convert("UTC").tz_localize(None)
+                if date_only and (clause.op == "lte" or clause.op == "between" and index == 1):
+                    timestamp = timestamp + pd.DateOffset(days=1) - pd.Timedelta(nanoseconds=1)
+            parsed.append(timestamp)
+        values = parsed
     if clause.op == "in":
         mask = series.isin(values)
     elif clause.op == "not_in":

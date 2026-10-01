@@ -52,12 +52,18 @@ class DateRange(BaseModel, frozen=True):
 
 
 class ComparisonSpec(BaseModel, frozen=True):
-    mode: ComparisonMode = "none"
+    mode: ComparisonMode = "previous_period"
 
 
 class ComparisonResult(BaseModel, frozen=True):
     mode: ComparisonMode
     status: Literal["ok", "insufficient_data", "previous_zero", "not_applicable"]
+    current_range: DateRange | None = None
+    reason_key: str | None = None
+    percentage_reason_key: str | None = None
+    delta_pp: float | None = None
+    direction: Literal["increase", "decrease", "unchanged"] | None = None
+    polarity: Literal["higher_is_better", "lower_is_better", "neutral"] = "neutral"
     previous_value: float | None = None
     delta_abs: float | None = None
     delta_pct: float | None = None

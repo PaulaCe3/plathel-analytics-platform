@@ -63,7 +63,7 @@ class DashboardService:
         fields = self._fields(session, profile)
         time_fields = {field.id for field in fields if field.kind == "time" and field.id in available}
         time_field = request.time_field or profile.data.primary_date
-        if time_field not in time_fields:
+        if request.time_field and time_field not in time_fields:
             raise AppError(code="TIME_FIELD_INVALID", http_status=422, message="El campo temporal seleccionado no está disponible.")
         unknown = {clause.field for clause in request.filters} - available
         if unknown:

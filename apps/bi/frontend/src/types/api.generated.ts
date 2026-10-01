@@ -481,6 +481,21 @@ export interface components {
              * @enum {string}
              */
             status: "ok" | "insufficient_data" | "previous_zero" | "not_applicable";
+            current_range?: components["schemas"]["DateRange"] | null;
+            /** Reason Key */
+            reason_key?: string | null;
+            /** Percentage Reason Key */
+            percentage_reason_key?: string | null;
+            /** Delta Pp */
+            delta_pp?: number | null;
+            /** Direction */
+            direction?: ("increase" | "decrease" | "unchanged") | null;
+            /**
+             * Polarity
+             * @default neutral
+             * @enum {string}
+             */
+            polarity: "higher_is_better" | "lower_is_better" | "neutral";
             /** Previous Value */
             previous_value?: number | null;
             /** Delta Abs */
@@ -500,7 +515,7 @@ export interface components {
         ComparisonSpec: {
             /**
              * Mode
-             * @default none
+             * @default previous_period
              * @enum {string}
              */
             mode: "none" | "previous_period" | "previous_week" | "previous_month" | "previous_quarter" | "previous_year";
@@ -511,7 +526,7 @@ export interface components {
             filters?: components["schemas"]["FilterClause"][];
             /**
              * @default {
-             *       "mode": "none"
+             *       "mode": "previous_period"
              *     }
              */
             comparison: components["schemas"]["ComparisonSpec"];

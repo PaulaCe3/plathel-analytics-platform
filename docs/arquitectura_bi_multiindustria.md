@@ -688,7 +688,11 @@ class ComparisonResult(BaseModel):
 | Previo = 0 | `previous_zero`, `delta_pct = null` (nunca ∞) |
 | Último período incompleto (ej. mes en curso) | `partial_period = true` |
 
-- `previous_period` = ventana de igual largo inmediatamente anterior (default).
+- `previous_period` es automático por defecto; `none` lo desactiva. Mes, trimestre y año completos usan el período natural anterior; los demás rangos usan una ventana inmediatamente anterior de igual cantidad de días. Los modos explícitos no habilitan ventanas de distinta duración, salvo períodos naturales equivalentes.
+- F1 reutiliza MetricEngine/Registry, ComparisonResolver y QuerySpec. ComparisonResult añade `current_range`, `reason_key`, `percentage_reason_key`, `delta_pp`, `direction` y `polarity`; MetricResult conserva el valor actual. `direction` describe cambio; no presupone beneficio empresarial.
+- Porcentajes/tasas priorizan puntos porcentuales (`delta_pp`); `delta_abs` conserva la diferencia cruda. Moneda, unidades, conteos y promedios válidos usan variación relativa; con baseline negativo se divide por su magnitud. Baseline cero conserva cambio absoluto y porcentaje nulo. No se devuelven Infinity/NaN.
+- Ambas ventanas conservan todos los filtros de segmento. No se inventa un cero para ventanas sin observaciones; tampoco se comparan monedas distintas entre ventanas. Cobertura actual inferior al 30 % impide comparación; inferior al 80 % o período en curso se señala como incompleto. Los umbrales previos siguen la tabla anterior.
+- Filtros de fecha sin hora incluyen el día completo en la zona del canonical, tanto en consultas como en exportaciones, incluidos cambios de horario. Timestamps explícitos mantienen su precisión; rangos intradía o de fechas discontinuas no se comparan porque DateRange representa días. La ausencia de fecha devuelve KPI disponible con comparación no aplicable; seleccionar explícitamente un campo temporal inexistente sigue siendo inválido.
 - El dashboard devuelve `comparison_options` con `available` y `reason` para cada modo.
 - La resolución de la granularidad temporal (`auto`) usa el rango: ≤ 62 días → día; ≤ 2 años → mes (semana si el usuario lo elige); mayor → trimestre/mes.
 

@@ -1,6 +1,6 @@
 """Resolve config and execute isolated dashboard widgets."""
 
-from datetime import date
+from datetime import date, datetime, time
 from pathlib import Path
 from typing import Any
 
@@ -14,7 +14,7 @@ from bi.insights.rules.universal import channel_dominance, data_quality_alert, g
 from bi.metrics.availability import resolve_availability
 from bi.metrics.comparison import ComparisonResolver
 from bi.metrics.engine import MetricEngine
-from bi.metrics.models import ComparisonSpec, DateRange, MetricResult, UnavailableMetric
+from bi.metrics.models import ComparisonResult, ComparisonSpec, DateRange, MetricResult, UnavailableMetric
 from bi.metrics.registry import MetricRegistry
 
 
@@ -70,6 +70,12 @@ class DashboardBuilder:
         coverage = self.engine.date_coverage(canonical_path, time_field) if time_field in available else None
         current_range = self._current_range(filters, time_field, coverage)
         resolved_grain = auto_grain(current_range.from_date, current_range.to_date) if grain == "auto" and current_range else ("month" if grain == "auto" else grain)
+        previous_range = self.comparisons.previous_range(comparison.mode,current_range) if current_range else None
+        counts = None
+        if comparison.mode != "none" and previous_range and coverage and self.comparisons.equivalent(comparison.mode,current_range,previous_range) and self.comparisons.coverage_ratio(previous_range,coverage)>=0.30:
+            previous_filters = self._previous_filters(filters,time_field,previous_range)
+            query = lambda clauses: int(self.engine.run_query(canonical_path,QuerySpec(measures=[MeasureSpec(alias="rows",aggregation="count")],filters=clauses)).rows[0]["rows"])
+            counts = (query(filters),query(previous_filters))
         data: dict[str, Any] = {}
         sections: list[SectionSpec] = []
         chart_points: dict[str, list[list]] = {}
@@ -83,8 +89,8 @@ class DashboardBuilder:
                     continue
                 try:
                     result = self._widget(template, canonical_path, available, filters, time_field, resolved_grain, quality)
-                    if isinstance(result, MetricResult) and comparison.mode != "none" and current_range and coverage:
-                        result = self._with_comparison(result, template.metric_id or "", canonical_path, available, filters, time_field, comparison, current_range, coverage)
+                    if isinstance(result, MetricResult) and comparison.mode != "none" :
+                        result = self._with_comparison(result, template.metric_id or "", canonical_path, available, filters, time_field, comparison, current_range, coverage, counts)
                 except Exception:
                     result = ChartResult(status="error", widget_id=template.id, chart="breakdown", x_type="category", error_key="widget.error")
                 if getattr(result, "status", None) == "unavailable":
@@ -125,16 +131,54 @@ class DashboardBuilder:
         spec = DashboardSpec(profile_id=profile.id, sections=sections, filters=derive_filters(self.engine, canonical_path, fields, available, profile.bi.extra_filters if profile.bi else ()), unavailable_metrics=unavailable, comparison_options=comparison_options, terminology=profile.data.terminology.get("es", {}), key_chart_ids=key_charts)
         return spec, data, int(count), warnings
 
-    def _with_comparison(self, result, metric_id, path, available, filters, time_field, comparison, current_range, coverage):
-        metric = self.metrics.get(metric_id)
-        previous_range = self.comparisons.previous_range(comparison.mode, current_range)
-        if not metric.comparable or not previous_range or self.comparisons.coverage_ratio(previous_range, coverage) < 0.30:
-            return result
-        previous_filters = [item for item in filters if item.field != time_field]
-        previous_filters.append(FilterClause(field=time_field, op="between", values=[previous_range.from_date, previous_range.to_date]))
-        previous = self.metric_engine.evaluate(path, metric_id, available, previous_filters)
-        resolved = self.comparisons.resolve(comparison.mode, current_range, coverage, result.value, previous.value)
-        return result.model_copy(update={"comparison": resolved})
+    @staticmethod
+    def _date_filters(filters,time_field):
+        # Date-only bounds include the whole canonical day; explicit timestamps remain exact.
+        result=[]
+        for item in filters:
+            if item.field == time_field and item.op in {"between","gte","lte"}:
+                values=[]
+                for index,value in enumerate(item.values):
+                    if isinstance(value,date) and not isinstance(value,datetime) or isinstance(value,str) and len(value)==10:
+                        try:
+                            day=value if isinstance(value,date) else date.fromisoformat(value)
+                        except ValueError:
+                            values.append(value)
+                            continue
+                        upper=item.op=="lte" or item.op=="between" and index==1
+                        value=datetime.combine(day,time.max if upper else time.min)
+                    values.append(value)
+                item=item.model_copy(update={"values":values})
+            result.append(item)
+        return result
+
+    @classmethod
+    def _previous_filters(cls,filters,time_field,previous_range):
+        return [*[item for item in filters if item.field!=time_field],FilterClause(field=time_field,op="between",values=[previous_range.from_date,previous_range.to_date])]
+
+    def _with_comparison(self,result,metric_id,path,available,filters,time_field,comparison,current_range,coverage,counts):
+        metric=self.metrics.get(metric_id)
+        previous_range=self.comparisons.previous_range(comparison.mode,current_range) if current_range else None
+        base=dict(mode=comparison.mode,current_range=current_range,previous_range=previous_range,polarity=metric.polarity)
+        reason=None
+        if not metric.comparable: reason="comparison.metric_not_comparable"
+        elif current_range is None or coverage is None: reason="comparison.no_date" if coverage is None or coverage.minimum is None or coverage.maximum is None else "comparison.unsupported_time_filter"
+        elif not self.comparisons.equivalent(comparison.mode,current_range,previous_range): reason="comparison.unequal_periods"
+        elif self.comparisons.coverage_ratio(previous_range,coverage)<0.30: reason="comparison.insufficient_data"
+        elif self.comparisons.coverage_ratio(current_range,coverage)<0.30: reason="comparison.current_insufficient_data"
+        elif counts and counts[0]==0: reason="comparison.current_no_observations"
+        elif counts and counts[1]==0: reason="comparison.previous_no_observations"
+        elif result.status!="ok": reason="comparison.current_unavailable"
+        if reason:
+            resolved=ComparisonResult(**base,status="not_applicable" if reason in {"comparison.metric_not_comparable","comparison.no_date","comparison.unsupported_time_filter","comparison.unequal_periods"} else "insufficient_data",reason_key=reason)
+        else:
+            previous=self.metric_engine.evaluate(path,metric_id,available,self._previous_filters(filters,time_field,previous_range))
+            currency_mismatch=metric.currency_sensitive and result.format.type=="currency" and result.format.currency!=previous.format.currency
+            if previous.status!="ok" or currency_mismatch:
+                resolved=ComparisonResult(**base,status="insufficient_data",reason_key="comparison.currency_mismatch" if currency_mismatch or any(w.code=="MIXED_CURRENCY" for w in previous.warnings) else "comparison.previous_unavailable")
+            else:
+                resolved=self.comparisons.resolve(comparison.mode,current_range,coverage,result.value,previous.value,percentage_metric=metric.output.type=="percent").model_copy(update={"polarity":metric.polarity})
+        return result.model_copy(update={"comparison":resolved})
 
     def _widget(self, widget: WidgetTemplate, path: Path, available: set[str], filters: list[FilterClause], time_field: str, grain: str, quality):
         if widget.type == "kpi":
@@ -168,7 +212,7 @@ class DashboardBuilder:
     @staticmethod
     def _period_bounds(value, grain):
         from calendar import monthrange
-        from datetime import datetime, timedelta
+        from datetime import date, datetime, timetime, timedelta
         if grain == "year":
             year = int(value)
             return date(year, 1, 1), datetime.combine(date(year, 12, 31), datetime.max.time())
@@ -181,13 +225,24 @@ class DashboardBuilder:
         return start, datetime.combine(end, datetime.max.time())
 
     @staticmethod
-    def _current_range(filters, time_field, coverage):
-        clause = next((item for item in filters if item.field == time_field and item.op == "between"), None)
-        if clause:
-            return DateRange(from_date=date.fromisoformat(str(clause.values[0])[:10]), to_date=date.fromisoformat(str(clause.values[1])[:10]))
-        if coverage and coverage.minimum and coverage.maximum:
-            return DateRange(from_date=coverage.minimum, to_date=coverage.maximum)
-        return None
+    def _current_range(filters,time_field,coverage):
+        if not coverage or not coverage.minimum or not coverage.maximum:
+            return None
+        clauses=DashboardBuilder._date_filters([item for item in filters if item.field==time_field],time_field)
+        if any(item.op not in {"between","gte","lte"} for item in clauses): return None
+        starts=[];ends=[]
+        for item in clauses:
+            # Intraday filters cannot be represented faithfully by a DateRange.
+            for index,value in enumerate(item.values):
+                try:
+                    parsed=datetime.fromisoformat(str(value))
+                except ValueError:
+                    return None
+                upper=item.op=="lte" or item.op=="between" and index==1
+                if parsed.tzinfo or parsed.time()!=(time.max if upper else time.min): return None
+            if item.op in {"between","gte"}: starts.append(date.fromisoformat(str(item.values[0])[:10]))
+            if item.op in {"between","lte"}: ends.append(date.fromisoformat(str(item.values[-1])[:10]))
+        return DateRange(from_date=max(starts) if starts else coverage.minimum,to_date=min(ends) if ends else coverage.maximum)
 
     def _comparison_options(self, current, coverage):
         modes = ["none", "previous_period", "previous_week", "previous_month", "previous_quarter", "previous_year"]
@@ -195,7 +250,7 @@ class DashboardBuilder:
         for mode in modes:
             previous = self.comparisons.previous_range(mode, current) if current else None
             ratio = self.comparisons.coverage_ratio(previous, coverage) if previous and coverage else 0
-            options.append(ComparisonOption(mode=mode, available=mode == "none" or ratio >= 0.30, reason_key=None if mode == "none" or ratio >= 0.30 else "comparison.insufficient_data"))
+            options.append(ComparisonOption(mode=mode, available=mode == "none" or ratio >= 0.30 and self.comparisons.equivalent(mode,current,previous), reason_key=None if mode == "none" or ratio >= 0.30 and self.comparisons.equivalent(mode,current,previous) else "comparison.insufficient_data"))
         return options
 
     @staticmethod

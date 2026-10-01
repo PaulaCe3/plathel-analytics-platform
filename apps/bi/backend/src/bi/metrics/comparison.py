@@ -1,6 +1,7 @@
 """Calendar-aware temporal comparison resolution."""
 
 import calendar
+import math
 from datetime import date, timedelta
 
 from analytics_core.engine.query import DateCoverage
@@ -15,6 +16,16 @@ def _calendar_range(mode: ComparisonMode, current: DateRange) -> DateRange | Non
     if mode == "none":
         return None
     if mode == "previous_period":
+        # Natural, complete calendar windows retain calendar semantics.
+        start, end = current.from_date, current.to_date
+        months = (end.year-start.year)*12 + end.month-start.month+1
+        full_months = start.day == 1 and end.day == calendar.monthrange(end.year,end.month)[1]
+        if full_months and months == 1:
+            return _calendar_range("previous_month",current)
+        if full_months and months == 3 and start.month in (1,4,7,10):
+            return _calendar_range("previous_quarter",current)
+        if full_months and months == 12 and start.month == 1:
+            return _calendar_range("previous_year",current)
         days = (current.to_date - current.from_date).days + 1
         end = current.from_date - timedelta(days=1)
         return DateRange(from_date=end - timedelta(days=days - 1), to_date=end)
@@ -50,27 +61,39 @@ class ComparisonResolver:
         requested_days = (requested.to_date - requested.from_date).days + 1
         return covered / requested_days if requested_days > 0 else 0.0
 
+    def equivalent(self, mode: ComparisonMode, current: DateRange, previous: DateRange) -> bool:
+        if current.from_date > current.to_date:
+            return False
+        natural = _calendar_range("previous_period", current)
+        if previous == natural:
+            return True
+        return (current.to_date-current.from_date).days == (previous.to_date-previous.from_date).days
+
     def resolve(
-        self,
-        mode: ComparisonMode,
-        current_range: DateRange,
-        coverage: DateCoverage,
-        current_value: float | int | None,
-        previous_value: float | int | None,
-        *,
-        today: date | None = None,
+        self, mode: ComparisonMode, current_range: DateRange, coverage: DateCoverage,
+        current_value: float | int | None, previous_value: float | int | None,
+        *, today: date | None = None, percentage_metric: bool = False,
     ) -> ComparisonResult:
         previous = self.previous_range(mode, current_range)
+        partial = current_range.to_date >= (today or date.today()) or self.coverage_ratio(current_range,coverage)<0.80
+        base = dict(mode=mode, current_range=current_range, previous_range=previous, partial_period=partial)
         if mode == "none" or previous is None:
-            return ComparisonResult(mode=mode, status="not_applicable")
-        partial = current_range.to_date >= (today or date.today())
+            return ComparisonResult(**base, status="not_applicable",reason_key="comparison.disabled")
+        if not self.equivalent(mode,current_range,previous):
+            return ComparisonResult(**base,status="not_applicable",reason_key="comparison.unequal_periods")
         ratio = self.coverage_ratio(previous, coverage)
         if ratio < 0.30 or current_value is None or previous_value is None:
-            return ComparisonResult(mode=mode, status="insufficient_data", previous_range=previous, partial_period=partial)
+            return ComparisonResult(**base,status="insufficient_data",reason_key="comparison.insufficient_data")
+        if not all(math.isfinite(float(value)) for value in (current_value,previous_value)):
+            return ComparisonResult(**base,status="insufficient_data",reason_key="comparison.invalid_value")
         warnings = []
         if ratio < 0.80:
-            warnings.append(MetricWarning(code="PARTIAL_PREVIOUS_PERIOD", message_key="warning.partial_previous_period"))
-        delta = float(current_value) - float(previous_value)
-        if float(previous_value) == 0:
-            return ComparisonResult(mode=mode, status="previous_zero", previous_value=float(previous_value), delta_abs=delta, delta_pct=None, previous_range=previous, partial_period=partial, warnings=warnings)
-        return ComparisonResult(mode=mode, status="ok", previous_value=float(previous_value), delta_abs=delta, delta_pct=delta / float(previous_value), previous_range=previous, partial_period=partial, warnings=warnings)
+            warnings.append(MetricWarning(code="PARTIAL_PREVIOUS_PERIOD",message_key="warning.partial_previous_period"))
+        if partial:
+            warnings.append(MetricWarning(code="PARTIAL_CURRENT_PERIOD",message_key="warning.partial_current_period"))
+        delta = float(current_value)-float(previous_value)
+        percentage = None if previous_value == 0 or percentage_metric else delta/abs(float(previous_value))
+        pp = delta*100 if percentage_metric else None
+        if not math.isfinite(delta) or (percentage is not None and not math.isfinite(percentage)) or (pp is not None and not math.isfinite(pp)):
+            return ComparisonResult(**base,status="insufficient_data",reason_key="comparison.invalid_value")
+        return ComparisonResult(**base,status="previous_zero" if previous_value == 0 else "ok",previous_value=float(previous_value),delta_abs=delta,delta_pct=percentage,delta_pp=pp,direction="increase" if delta>0 else "decrease" if delta<0 else "unchanged",percentage_reason_key="comparison.percentage_points" if percentage_metric else "comparison.previous_zero" if previous_value == 0 else None,warnings=warnings)

@@ -25,7 +25,7 @@ test("error and empty states announce meaningful Spanish messages", () => {
   assert.match(render(EmptyState), /role="status".*No hay datos/);
 });
 test("KPI formats zero and signed comparison without treating zero as empty", () => {
-  const html = render(DashboardRenderer, { dashboard: dashboard([widget("kpi")], { test: { status: "ok", value: 0, format: { type: "number", decimals: 0 }, excluded_rows: 1, comparison: { delta_pct: -0.25 } } }) });
+  const html = render(DashboardRenderer, { dashboard: dashboard([widget("kpi")], { test: { status: "ok", value: 0, format: { type: "number", decimals: 0 }, excluded_rows: 1, comparison: { status:"ok", delta_pct: -0.25, direction:"decrease" } } }) });
   assert.match(html, />0<\/p>/); assert.match(html, /-25/); assert.match(html, /período anterior/);
 });
 for (const [type, status] of [["unknown", "ok"], ["ranking", "error"], ["kpi", "empty"], ["kpi", "unavailable"]]) test(`${type}/${status} renders a safe fallback`, () => {
@@ -94,4 +94,15 @@ test("period presets use the dataset calendar, clamp bounds and handle leap date
  assert.deepEqual(datePreset("12","2024-02-01","2024-03-31"),["2024-02-01","2024-03-31"]);
  assert.deepEqual(datePreset("year","2020-01-01","2024-03-31"),["2024-01-01","2024-03-31"]);
  assert.equal(chartOption({chart:"timeseries",series:[]}).legend.show,false);
+});
+
+test("comparison presentation uses backend pp and zero baseline absolute values",()=>{
+ const metric={status:"ok",value:.45,format:{type:"percent",decimals:1},comparison:{mode:"previous_period",status:"ok",delta_pp:5,delta_pct:null,previous_value:.4,direction:"increase",current_range:{from:"2025-02-01",to:"2025-02-28"},previous_range:{from:"2025-01-01",to:"2025-01-31"}}};
+ const html=render(DashboardRenderer,{dashboard:dashboard([widget("kpi")],{test:metric})});assert.match(html,/\+5 puntos porcentuales/);assert.doesNotMatch(html,/12,5/);assert.match(html,/2025-01-31/);
+ const zero={...metric,value:120,format:{type:"currency",currency:"ARS",decimals:0},comparison:{status:"previous_zero",delta_abs:120,delta_pct:null,previous_value:0}};
+ assert.match(render(DashboardRenderer,{dashboard:dashboard([widget("kpi")],{test:zero})}),/120.*vs\. período anterior/);
+ const partial={...metric,comparison:{...metric.comparison,partial_period:true,warnings:[{code:"PARTIAL_PREVIOUS_PERIOD"}]}};assert.match(render(DashboardRenderer,{dashboard:dashboard([widget("kpi")],{test:partial})}),/período actual incompleto/);
+ const missing={...zero,comparison:{status:"insufficient_data",reason_key:"comparison.insufficient_data"}};
+ assert.doesNotMatch(render(DashboardRenderer,{dashboard:dashboard([widget("kpi")],{test:missing})}),/Sin comparación|N\/A|vs\. período anterior/);
+ assert.match(render(DashboardRenderer,{dashboard:dashboard([widget("kpi")],{test:metric}),mode:"results"}),/\+5 puntos porcentuales/);
 });
