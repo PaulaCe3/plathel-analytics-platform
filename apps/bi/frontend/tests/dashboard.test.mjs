@@ -125,3 +125,12 @@ test("F2 deduplicates concentration already interpreted by a visible chart",()=>
  assert.doesNotMatch(render(DashboardRenderer,{dashboard:d,mode:"dashboard"}),/No duplicar|>Hallazgos</);
  assert.match(render(DashboardRenderer,{dashboard:d,mode:"results"}),/No duplicar/);
 });
+
+test("F3 presents backend anomaly copy inside the shared three-finding limit",()=>{
+ const anomaly={id:"anomaly",kind:"anomaly_high",template_key:"business.fact",text:"Diciembre tuvo facturación inusualmente alta frente al patrón histórico observado.",params:{period:"2024-12",observed:300,baseline:100,direction:"alto"}};
+ const insights=[anomaly,...Array.from({length:4},(_,i)=>({id:`other${i}`,kind:"leadership",template_key:"business.fact",text:`Hallazgo ${i}`,params:{segment:String(i)}}))];
+ const html=render(DashboardRenderer,{dashboard:dashboard([widget("insights")],{test:{status:"ok",insights}}),mode:"results"});
+ assert.match(html,/inusualmente alta frente al patrón histórico observado/);
+ assert.equal((html.match(/<li/g)??[]).length,3);
+ assert.doesNotMatch(html,/modified_z|significativo|porque/);
+});

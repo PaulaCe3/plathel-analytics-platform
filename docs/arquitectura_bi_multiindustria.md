@@ -846,6 +846,10 @@ Umbrales y pesos viven en `insights/config.py`: cambio mínimo 2 % o 1 pp, peso 
 
 Se ordenan hasta ocho candidatos secundarios; Resultados y Dashboard presentan como máximo tres principales. La identidad incluye tipo, métrica, dimensión y segmento, y el frontend elimina la concentración que ya explica un gráfico visible usando dimensión/segmento o Top N/participación. Las reglas universales anteriores permanecen disponibles para interpretaciones locales.
 
+**F3 implementado:** las métricas numéricas disponibles se agrupan por el campo temporal y la granularidad ya resuelta por Dashboard, siempre con los `FilterClause` activos. `anomalies.py` evalúa únicamente buckets completos y consecutivos con al menos ocho observaciones. Usa mediana y MAD con umbral de modified z-score 3,5; cuando MAD es cero, solo usa un fallback IQR conservador si existe dispersión robusta. Series constantes, incompletas, discontinuas, no finitas o invalidadas por moneda mixta no producen candidatos.
+
+Los tipos `anomaly_high` y `anomaly_low` conservan período, valor observado, baseline robusto, dirección, desviación, contexto de filtros y detalle técnico. El texto principal no expone el score estadístico ni afirma significancia, causalidad o recomendaciones. El score se integra con los pesos de F2 y conserva como máximo una anomalía por métrica. Si la anomalía describe el último bucket observado, reemplaza al cambio general de esa métrica para evitar duplicación; el límite visible sigue siendo tres hallazgos totales.
+
 
 ---
 

@@ -124,7 +124,8 @@ class DashboardBuilder:
             data[widget.id] = result.model_copy(update={"interpretation": interpreted[0] if interpreted else None})
             if len(key_charts) < 4 and widget.id not in key_charts:
                 key_charts.append(widget.id)
-        insights = self._business_insights(profile, canonical_path, available, filters, time_field, coverage, data)
+        insights = self._business_insights(profile, canonical_path, available, filters, time_field,
+                                           coverage, current_range, resolved_grain, data)
         if "insights_top" in data:
             data["insights_top"] = {"status": "ok" if insights else "empty", "widget_id": "insights_top", "insights": [item.model_dump() for item in insights]}
         count = self.engine.run_query(canonical_path, QuerySpec(measures=[MeasureSpec(alias="rows", aggregation="count")], filters=filters)).rows[0]["rows"]
@@ -254,14 +255,20 @@ class DashboardBuilder:
             options.append(ComparisonOption(mode=mode, available=mode == "none" or ratio >= 0.30 and self.comparisons.equivalent(mode,current,previous), reason_key=None if mode == "none" or ratio >= 0.30 and self.comparisons.equivalent(mode,current,previous) else "comparison.insufficient_data"))
         return options
 
-    def _business_insights(self, profile, path, available, filters, time_field, coverage, data):
+    def _business_insights(self, profile, path, available, filters, time_field, coverage, current_range, grain, data):
         results = [value for value in data.values() if isinstance(value, MetricResult)]
         dimensions = sorted({value.meta.get("dimension") for value in data.values()
             if isinstance(value, ChartResult) and value.x_type == "category" and value.meta.get("dimension") in available})
         grouped = {}
+        temporal = {}
         # Rankings and contributions reuse the registry AST; F1 supplies comparable windows.
         for result in results:
             if result.status != "ok" or result.value is None: continue
+            if coverage and coverage.maximum and time_field in available:
+                _, values = self.metric_engine.grouped(path, result.metric_id, available, filters,
+                                                       GroupBy(field=time_field, grain=grain))
+                analysis_end = min(coverage.maximum, current_range.to_date) if current_range else coverage.maximum
+                temporal[result.metric_id] = ([[str(period), value] for period, value in values], grain, analysis_end)
             for dimension in dimensions:
                 if result.metric_id != "revenue" and not self.metrics.get(result.metric_id).additive: continue
                 _, values = self.metric_engine.grouped(path, result.metric_id, available, filters, GroupBy(field=dimension))
@@ -278,4 +285,4 @@ class DashboardBuilder:
                             current[segment], previous[segment], percentage_metric=result.format.type == "percent")
                 grouped[(result.metric_id, dimension)] = (current, previous, comparisons)
         return business_insights(profile, self.metrics, results, grouped,
-                                 [clause.model_dump(mode="json") for clause in filters])
+                                 [clause.model_dump(mode="json") for clause in filters], temporal)

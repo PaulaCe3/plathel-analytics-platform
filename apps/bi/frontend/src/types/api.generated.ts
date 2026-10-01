@@ -914,7 +914,7 @@ export interface components {
             /** Dimension */
             dimension?: string | null;
             /** Kind */
-            kind?: ("change" | "leadership" | "concentration" | "segment_change" | "contribution" | "divergence") | null;
+            kind?: ("change" | "leadership" | "concentration" | "segment_change" | "contribution" | "divergence" | "anomaly_high" | "anomaly_low") | null;
             /** Score */
             score: number;
         };

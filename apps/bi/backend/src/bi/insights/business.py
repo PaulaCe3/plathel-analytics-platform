@@ -4,6 +4,7 @@ from bi.insights.config import (CHANGE_MIN_PP, DECOMPOSITION_TOLERANCE, DIVERGEN
     GROWTH_MIN_ABS, KIND_WEIGHT, MAGNITUDE_WEIGHT, RELEVANCE_WEIGHT, SEGMENT_MIN_WEIGHT,
     TOP_N, TOP_N_MIN_SHARE)
 from bi.insights.engine import Insight, InsightEngine
+from bi.insights.anomalies import anomaly_candidates
 from bi.metrics.models import MetricResult
 
 METRIC_LABELS = {"transactions": "Operaciones", "customers": "Clientes",
@@ -65,7 +66,7 @@ def candidate(kind, metric, profile, *, comparison=None, current=None, dimension
                    metric_id=metric, dimension=dimension, score=score)
 
 
-def business_insights(profile, registry, results, grouped, context):
+def business_insights(profile, registry, results, grouped, context, temporal=None):
     """grouped contains full, untruncated aggregates for current and previous filters."""
     found = []
     metrics = {r.metric_id: r for r in results if isinstance(r, MetricResult) and r.status == "ok" and finite(r.value)}
@@ -130,4 +131,7 @@ def business_insights(profile, registry, results, grouped, context):
         if a and b and a.excluded_rows == 0 and b.excluded_rows == 0 and changed(a.comparison) and changed(b.comparison) and a.comparison.delta_abs*b.comparison.delta_abs < 0 and a.comparison.current_range == b.comparison.current_range and a.comparison.previous_range == b.comparison.previous_range and a.excluded_rows == b.excluded_rows:
             found.append(candidate("divergence", first, profile, comparison=a.comparison, current=a.value, magnitude=1,
                 text=f"{label(first,profile)} {change_text(a.comparison,a.format.currency)}, mientras {label(second,profile).lower()} {change_text(b.comparison)}.", extra={"related_metric": second, "related_comparison": b.comparison.model_dump(mode="json")}))
+    for metric, (points, grain, analysis_end) in (temporal or {}).items():
+        if metric in metrics:
+            found += anomaly_candidates(profile, metric, label(metric, profile), points, grain, analysis_end, context)
     return InsightEngine().prioritize([item.model_copy(update={"params": {**item.params, "filters": context}}) for item in found])
