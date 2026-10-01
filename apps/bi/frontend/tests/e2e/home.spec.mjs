@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process";
 import { python } from "../../playwright.config.mjs";
 import AxeBuilder from "@axe-core/playwright";
 test("home: hero, navigation, responsive and accessibility",async({page})=>{
- await page.goto("/bi");
+ await page.goto("/bi");await expect(page.getByRole("button",{name:/36 meses/})).toHaveCount(0);
  await expect(page.getByRole("heading",{name:"Subí tus datos",exact:true})).toBeVisible();
  await expect(page.getByRole("button",{name:"Seleccionar archivo",exact:true})).toBeVisible();
  await expect(page.getByRole("main")).not.toContainText(/Preparado para distintos|Todo listo para analizar|Convertí tus datos/);

@@ -90,7 +90,7 @@ Playwright levanta backend en 8100 y frontend en 3100, un worker, sin sleeps de 
 
 [Documento de cierre técnico](docs/fase8_hardening.md). No hay autenticación, base de datos, colas ni almacenamiento cloud.
 
-La demo `retail_forecast_demo` contiene 36 meses consecutivos de datos sintéticos históricos (108 registros) para recorrer preparación, resultados, predicción y exploración sin resultados hardcodeados. Se abre desde los ejemplos de `/bi`.
+La demo `retail_forecast_demo` contiene 36 meses consecutivos de datos sintéticos históricos (108 registros) para recorrer preparación, resultados, predicción y exploración sin resultados hardcodeados. El ejemplo visible Retail utiliza ese historial internamente; no se expone una opción técnica adicional al cliente.
 
 ## Predicciones
 
