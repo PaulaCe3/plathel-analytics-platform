@@ -45,9 +45,9 @@ for (const type of ["timeseries", "ranking"]) test(`chart adapter preserves ${ty
 });
 test("chart adapter handles no series", () => assert.deepEqual(chartOption({ chart: "ranking", series: [] }).series[0].data, []));
 
-test("chart has a textual metric legend", () => {
+test("single-series chart omits redundant legend but retains metric in tooltip", () => {
   const option = chartOption({ chart: "ranking", series: [{ points: [["A", 1]] }] }, "Ingresos");
-  assert.deepEqual(option.legend.data, ["Ingresos"]); assert.equal(option.series[0].name, "Ingresos");
+  assert.equal(option.legend.show, false); assert.equal(option.series[0].name, "Ingresos");
 });
 
 test("insights render localized templates without exposing keys or JSON", () => {
@@ -86,3 +86,12 @@ test("dashboard removes findings already explained by the visible chart",()=>{
 const finding={id:"peak",template_key:"insight.peak_period",params:{period:"2026-02",value:99}};const value=dashboard([widget("timeseries","line"),widget("insights","findings")],{line:{status:"ok",chart:"timeseries",series:[],interpretation:finding},findings:{status:"ok",insights:[finding]}});const html=render(DashboardRenderer,{dashboard:value});assert.equal((html.match(/fue el período/g)??[]).length,1);assert.doesNotMatch(html,/>Hallazgos</);
 });
 test("selection highlights preserve chart values and accessible distinction",()=>{const option=chartOption({chart:"ranking",series:[{points:[["A",10],["B",20]]}]},"Ingresos",["B"]);assert.deepEqual(option.series[0].data.map(point=>point.value),[10,20]);assert.equal(option.series[0].data[1].itemStyle.borderWidth,2);});
+
+const {datePreset}=await import(compile("../src/lib/date-presets.ts"));
+test("period presets use the dataset calendar, clamp bounds and handle leap dates",()=>{
+ assert.deepEqual(datePreset("3","2020-01-01","2024-03-31"),["2024-01-01","2024-03-31"]);
+ assert.deepEqual(datePreset("30d","2020-01-01","2024-03-01"),["2024-02-01","2024-03-01"]);
+ assert.deepEqual(datePreset("12","2024-02-01","2024-03-31"),["2024-02-01","2024-03-31"]);
+ assert.deepEqual(datePreset("year","2020-01-01","2024-03-31"),["2024-01-01","2024-03-31"]);
+ assert.equal(chartOption({chart:"timeseries",series:[]}).legend.show,false);
+});

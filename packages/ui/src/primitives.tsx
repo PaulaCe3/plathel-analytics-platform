@@ -2,7 +2,7 @@
 import { useEffect, useId, useRef, type ReactNode, type ComponentProps } from "react";
 const uiMessages:Record<string,string>={"widget.empty":"No hay datos para mostrar.","widget.error":"No pudimos mostrar este bloque. Intentá actualizar el análisis.","request.retry":"Reintentar","product.loading":"Cargando tus datos…","product.close":"Cerrar"};
 const t=(key:string)=>uiMessages[key];
-export function Button({variant="primary",busy=false,className="",children,...props}:ComponentProps<"button"> & {variant?:"primary"|"secondary"|"ghost";busy?:boolean}) {return <button type="button" {...props} aria-busy={busy || undefined} disabled={busy || props.disabled} className={`pl-button pl-button--${variant} ${className}`}>{busy && <span className="pl-spinner" aria-hidden="true"/>}{children}</button>;}
+export function Button({variant="primary",busy=false,className="",children,...props}:ComponentProps<"button"> & {variant?:"primary"|"secondary"|"ghost"|"danger";busy?:boolean}) {return <button type="button" {...props} aria-busy={busy || undefined} disabled={busy || props.disabled} className={`pl-button pl-button--${variant} ${className}`}>{busy && <span className="pl-spinner" aria-hidden="true"/>}{children}</button>;}
 export function Card({className="",...props}:ComponentProps<"section">){return <section {...props} className={`pl-panel ${className}`}/>;}
 export function Input(props:ComponentProps<"input">){return <input {...props} className={`pl-input ${props.className ?? ""}`}/>;}
 export function Select(props:ComponentProps<"select">){return <select {...props} className={`pl-input ${props.className ?? ""}`}/>;}

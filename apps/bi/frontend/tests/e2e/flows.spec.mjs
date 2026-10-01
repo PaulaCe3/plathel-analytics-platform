@@ -14,9 +14,9 @@ async function accessible(page) {
   expect(results.violations.map(({ id, nodes }) => ({ id, nodes: nodes.map((node) => node.target) }))).toEqual([]);
 }
 async function clean(page) {
-  await expect(page.getByRole("button", { name: "Preparar mis datos" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: /Continuar (con estos|sin) ajustes/ })).toBeEnabled();
   await accessible(page);
-  await page.getByRole("button", { name: "Preparar mis datos" }).focus();
+  await page.getByRole("button", { name: /Continuar (con estos|sin) ajustes/ }).focus();
   await page.keyboard.press("Enter");
   await page.getByRole("link", { name: "Ver resultados" }).click();
   await expect(page.getByRole("heading", { name: "Tu negocio, en pocas palabras", exact: true })).toBeVisible();
@@ -50,8 +50,8 @@ async function responsive(page) {
   for (const width of [390, 768, 1280]) {
     await page.setViewportSize({ width, height: 900 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-    const span = await page.getByRole("article").first().evaluate((node) => getComputedStyle(node).gridColumnStart);
-    expect(span).toBe(`span ${width < 768 ? 12 : width < 1024 ? 6 : 3}`);
+    const positions = await page.locator(".pl-kpi-grid > article").evaluateAll(nodes=>nodes.slice(0,2).map(node=>({x:node.getBoundingClientRect().x,y:node.getBoundingClientRect().y})));
+    if(width<600){expect(positions[1].x).toBe(positions[0].x);expect(positions[1].y).toBeGreaterThan(positions[0].y);}else{expect(positions[1].y).toBe(positions[0].y);expect(positions[1].x).toBeGreaterThan(positions[0].x);}
   }
 }
 for (const [demo, profile, metric, expected] of [["retail_demo", "retail_ecommerce", "Ventas", "264.000"], ["services_demo", "services", "Horas de servicio", "36"], ["hospitality_demo", "hospitality", "Noches totales", "24"]]) {
@@ -80,7 +80,7 @@ for (const [demo, profile, metric, expected] of [["retail_demo", "retail_ecommer
     await clean(page);
     await expect(kpi(page, metric)).toContainText(expected);
     await expect(page.getByRole("combobox", { name: "Canal", exact: true })).toBeVisible();
-    if (profile === "hospitality") {await page.getByText("Más filtros",{exact:true}).click(); await expect(page.getByLabel("Entrada desde", { exact: true })).toHaveAttribute("min", "2026-01-02");}
+    if (profile === "hospitality") {await page.getByText("Más filtros",{exact:true}).click(); await page.getByRole("combobox",{name:"Entrada",exact:true}).selectOption("custom"); await expect(page.getByLabel("Entrada desde", { exact: true })).toHaveAttribute("min", "2026-01-02");}
     if (profile === "services") {const option=page.getByRole("combobox",{name:"Ver datos por"});const value=await option.locator("option").last().getAttribute("value");await option.selectOption(value);await expect(page.locator(".pl-secondary-explorer canvas")).toBeVisible();}
     if (profile === "hospitality") {
       await expect(page.getByRole("heading", { name: "Tarifa promedio por noche", exact: true })).toHaveCount(0);

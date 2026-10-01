@@ -20,5 +20,5 @@ export function SessionControls({ datasetId }: { datasetId: string }) {
     try { await deleteDataset(datasetId); router.replace("/bi?deleted=1"); }
     catch { setStatus(t("product.sessionError")); setBusy(false); }
   }
-  return <div className="pl-session-controls"><details className="pl-session-menu"><summary>Opciones</summary><div className="pl-session-menu-content"><a href={`/bi/${datasetId}/mapping`}>Revisar datos</a><details><summary>{t("product.privacy")}</summary><div><p>{t("session.privacy")}</p>{expiry && <p>{t("product.expiry")}: {expiry}.</p>}</div></details><Button variant="ghost" busy={busy} onClick={finish}>{t("session.delete")}</Button><Toast tone="error">{busy ? null : status}</Toast></div></details></div>;
+  return <div className="pl-session-controls"><details className="pl-session-menu"><summary>Opciones</summary><div className="pl-session-menu-content"><a href={`/bi/${datasetId}/mapping`}>Revisar datos</a><details><summary>{t("product.privacy")}</summary><div><p>{t("session.privacy")}</p>{expiry && <p>{t("product.expiry")}: {expiry}.</p>}</div></details><Button variant="danger" busy={busy} onClick={finish}>{t("session.delete")}</Button><Toast tone="error">{busy ? null : status}</Toast></div></details></div>;
 }

@@ -12,6 +12,10 @@
 | No mostrar estados, métricas o información técnica que no requieran acción ni ayuden al cliente a comprender su negocio. | Opciones y Sobre estos datos contienen detalles secundarios; se omiten secciones vacías. |
 | Resultados prioriza comprensión; Dashboard prioriza exploración. No deben duplicar contenido. | Resumen narrativo frente a KPIs; interpretaciones locales deduplicadas de los hallazgos generales. |
 | PLATHEL hace la parte difícil; el cliente ve la parte fácil. | Detalles técnicos colapsados y decisiones visibles únicamente cuando requieren intervención. |
+| Acciones con impacto cero no se muestran. | Preparación omite filas/valores sin efecto y no crea Opciones avanzadas vacías; el registro también omite transformaciones sin efecto. |
+| Musgo = datos, selección y estado correcto; óxido = atención, error y destrucción. | Negativos solo reciben color semántico cuando existe una interpretación segura; las comparaciones actuales siguen neutrales. Tokens en [Sistema visual](../design_system_plathel.md). |
+| Un CTA principal por decisión; detalles técnicos siempre secundarios. | Ajustes seguros separados de eliminación; conservar/eliminar es explícito y eliminar requiere confirmación. |
+| No mostrar controles o información sin utilidad para el cliente. | Períodos rápidos usan la última fecha del archivo; Personalizado revela fechas manuales. Mismos filtros y exportación. |
 | Cross-filter y controles comparten un único estado de filtros. | Barras y alternativa tabular accesible generan FilterClause; backend recalcula y exporta el mismo contexto. |
 | No duplicar ingestion, preparación ni sesiones. | Predicciones consume los datos ya preparados. |
 | Backend calcula; frontend representa. | Contratos TypeScript generados desde OpenAPI, sin duplicar modelos. |
