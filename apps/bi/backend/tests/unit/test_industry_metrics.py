@@ -155,9 +155,9 @@ def test_industry_insight_thresholds_and_filters(dataset, profile_id, dimension)
     def build(filters):
         return builder.build(profile=profile, canonical_path=path, fields=profile_fields(profile), available=set(data), filters=filters, comparison=ComparisonSpec(), time_field=profile.data.primary_date, grain="month", quality=QualitySummary(), row_count=4)[1]["insights_top"]["insights"]
     insights = build([])
-    specific = [item for item in insights if item["rule_id"] == "industry_leader"]
-    assert specific and specific[0]["dimension"] == dimension and specific[0]["params"]["value"] == "C"
-    assert not any(item["rule_id"] == "industry_leader" for item in build([FilterClause(field=dimension, op="in", values=["C"])]))
+    specific = [item for item in insights if item["kind"] in {"leadership", "concentration"} and item["metric_id"] == "revenue" and item["dimension"] == dimension]
+    assert specific and specific[0]["dimension"] == dimension and specific[0]["params"]["segment"] == "C"
+    assert not any(item["kind"] in {"leadership", "concentration"} and item["dimension"] == dimension for item in build([FilterClause(field=dimension, op="in", values=["C"])]))
 
 
 def test_nonadditive_others_recomputed(dataset):

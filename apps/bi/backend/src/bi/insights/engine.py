@@ -15,14 +15,15 @@ class Insight(BaseModel, frozen=True):
     text: str
     metric_id: str | None = None
     dimension: str | None = None
+    kind: Literal["change", "leadership", "concentration", "segment_change", "contribution", "divergence"] | None = None
     score: float
 
 
 class InsightEngine:
     def prioritize(self, insights: list[Insight], limit: int = SECTION_LIMIT) -> list[Insight]:
-        unique: dict[tuple[str, str | None], Insight] = {}
+        unique: dict[tuple, Insight] = {}
         for insight in insights:
-            key = (insight.rule_id, insight.dimension)
+            key = (insight.kind or insight.rule_id, insight.metric_id, insight.dimension, insight.params.get("segment"))
             if key not in unique or insight.score > unique[key].score:
                 unique[key] = insight
         return sorted(unique.values(), key=lambda item: (-item.score, item.id))[:limit]

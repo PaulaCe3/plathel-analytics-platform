@@ -10,7 +10,8 @@ from bi.dashboard.filters import derive_filters
 from bi.dashboard.templates import LayoutSpec, SectionTemplate, WidgetTemplate
 from bi.dashboard.widgets import ChartResult, ChartSeries, ComparisonOption, DashboardSpec, QualityResult, SectionSpec, WidgetSpec
 from bi.insights.engine import InsightEngine
-from bi.insights.rules.universal import channel_dominance, data_quality_alert, growth_vs_previous, leader_share, peak_period, top_n_concentration
+from bi.insights.business import business_insights
+from bi.insights.rules.universal import leader_share, peak_period, top_n_concentration
 from bi.metrics.availability import resolve_availability
 from bi.metrics.comparison import ComparisonResolver
 from bi.metrics.engine import MetricEngine
@@ -123,7 +124,7 @@ class DashboardBuilder:
             data[widget.id] = result.model_copy(update={"interpretation": interpreted[0] if interpreted else None})
             if len(key_charts) < 4 and widget.id not in key_charts:
                 key_charts.append(widget.id)
-        insights = self._insights(chart_points, quality, row_count, data, profile)
+        insights = self._business_insights(profile, canonical_path, available, filters, time_field, coverage, data)
         if "insights_top" in data:
             data["insights_top"] = {"status": "ok" if insights else "empty", "widget_id": "insights_top", "insights": [item.model_dump() for item in insights]}
         count = self.engine.run_query(canonical_path, QuerySpec(measures=[MeasureSpec(alias="rows", aggregation="count")], filters=filters)).rows[0]["rows"]
@@ -253,21 +254,28 @@ class DashboardBuilder:
             options.append(ComparisonOption(mode=mode, available=mode == "none" or ratio >= 0.30 and self.comparisons.equivalent(mode,current,previous), reason_key=None if mode == "none" or ratio >= 0.30 and self.comparisons.equivalent(mode,current,previous) else "comparison.insufficient_data"))
         return options
 
-    @staticmethod
-    def _insights(points, quality, row_count, data, profile):
-        found = []
-        rules = set(profile.bi.insight_rules if profile.bi else ())
-        if "industry_leader" in rules:
-            from bi.profiles.insights import industry_leader
-            found += industry_leader(profile, points)
-        for value in data.values():
-            if isinstance(value, MetricResult):
-                found += growth_vs_previous(value.comparison, value.metric_id)
-        for dimension, values in points.items():
-            if dimension == "time": found += peak_period(values)
-            elif dimension == "channel": found += channel_dominance(values)
-            else: found += leader_share(values, dimension) + top_n_concentration(values, dimension)
-        found += data_quality_alert(quality.total_issues if quality else 0, row_count)
-        industry_dimensions = {item.dimension for item in found if item.rule_id == "industry_leader"}
-        found = [item for item in found if item.rule_id != "leader_share" or item.dimension not in industry_dimensions]
-        return InsightEngine().prioritize([item for item in found if item.rule_id in rules])
+    def _business_insights(self, profile, path, available, filters, time_field, coverage, data):
+        results = [value for value in data.values() if isinstance(value, MetricResult)]
+        dimensions = sorted({value.meta.get("dimension") for value in data.values()
+            if isinstance(value, ChartResult) and value.x_type == "category" and value.meta.get("dimension") in available})
+        grouped = {}
+        # Rankings and contributions reuse the registry AST; F1 supplies comparable windows.
+        for result in results:
+            if result.status != "ok" or result.value is None: continue
+            for dimension in dimensions:
+                if result.metric_id != "revenue" and not self.metrics.get(result.metric_id).additive: continue
+                _, values = self.metric_engine.grouped(path, result.metric_id, available, filters, GroupBy(field=dimension))
+                current = dict(values)
+                previous = None
+                comparisons = {}
+                c = result.comparison
+                if c and c.status in {"ok", "previous_zero"} and c.previous_range and coverage:
+                    _, values = self.metric_engine.grouped(path, result.metric_id, available,
+                        self._previous_filters(filters, time_field, c.previous_range), GroupBy(field=dimension))
+                    previous = dict(values)
+                    for segment in current.keys() & previous.keys():
+                        comparisons[segment] = self.comparisons.resolve(c.mode, c.current_range, coverage,
+                            current[segment], previous[segment], percentage_metric=result.format.type == "percent")
+                grouped[(result.metric_id, dimension)] = (current, previous, comparisons)
+        return business_insights(profile, self.metrics, results, grouped,
+                                 [clause.model_dump(mode="json") for clause in filters])

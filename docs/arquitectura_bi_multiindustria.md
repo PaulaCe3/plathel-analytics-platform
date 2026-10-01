@@ -836,7 +836,16 @@ class Insight(BaseModel):
 | `channel_dominance` | “{channel} representa la mayor proporción de operaciones” | ≥ 2 canales |
 | `data_quality_alert` | “El 18 % de las fechas no es válido y no se incluyó” | Solo si supera umbral |
 
-**Priorización:** `score = magnitud × relevancia (peso de la métrica) × confianza (tamaño de base)`. Se muestran máx. 3 en el resumen y hasta 8 en la sección; se deduplican por (regla, dimensión). Los insights **respetan los filtros activos** porque usan el mismo `InsightContext`.
+**F2 implementado:** `business.py` extiende `Insight` con `kind`; conserva métricas, dimensión, score y texto, y usa `params` para segmento, valor actual, baseline, deltas, pp, participación, contribución, períodos y filtros. El backend resuelve el texto con terminología del perfil; el frontend lo presenta.
+
+Candidatos: cambio/caída neutral, liderazgo sin empates, concentración individual o Top 3 (más de tres segmentos), cambio por segmento, contribución y divergencia. Los agregados completos se consultan mediante MetricEngine/Registry y los mismos QuerySpec; las comparaciones reutilizan F1. Baseline cero conserva cambio absoluto. Cambios de tasas usan pp. Segmentos sin observaciones comparables no generan cambio relativo.
+
+La contribución requiere una métrica aditiva y que ambos agregados por segmento reconcilien con sus respectivos totales. Se divide el delta del segmento por el delta total; admite aportes negativos y superiores al 100 % del cambio neto. Delta total cero impide la descomposición. Participaciones requieren valores no negativos y una partición aditiva reconciliada. No se infieren causas ni recomendaciones.
+
+Umbrales y pesos viven en `insights/config.py`: cambio mínimo 2 % o 1 pp, peso mínimo de segmento 2 %, concentración mínima 60 %. La divergencia aprobada es facturación/margen bruto con direcciones opuestas, ventanas iguales y poblaciones completas. Score determinístico combina utilidad del tipo, relevancia por `kpi_order` y magnitud normalizada; no representa confianza estadística.
+
+Se ordenan hasta ocho candidatos secundarios; Resultados y Dashboard presentan como máximo tres principales. La identidad incluye tipo, métrica, dimensión y segmento, y el frontend elimina la concentración que ya explica un gráfico visible usando dimensión/segmento o Top N/participación. Las reglas universales anteriores permanecen disponibles para interpretaciones locales.
+
 
 ---
 

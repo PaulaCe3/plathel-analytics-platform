@@ -913,6 +913,8 @@ export interface components {
             metric_id?: string | null;
             /** Dimension */
             dimension?: string | null;
+            /** Kind */
+            kind?: ("change" | "leadership" | "concentration" | "segment_change" | "contribution" | "divergence") | null;
             /** Score */
             score: number;
         };

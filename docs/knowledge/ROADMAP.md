@@ -4,4 +4,6 @@ Los dos puntos confirmados —experiencia de [[PRODUCT_VISION]] y dataviz verde 
 
 F1 · Comparaciones automáticas completado y probado. Alcance y límites en [[CURRENT_STATE]] y [Comparaciones temporales](../arquitectura_bi_multiindustria.md#11-comparaciones-temporales).
 
+F2 · Insight Engine 2.0 completado y probado. Tipos, filtros, validación y límites en [[CURRENT_STATE]] y [Insights automáticos](../arquitectura_bi_multiindustria.md#14-insights-automáticos-determinísticos).
+
 No hay trabajo futuro adicional aprobado ni fechas comprometidas.

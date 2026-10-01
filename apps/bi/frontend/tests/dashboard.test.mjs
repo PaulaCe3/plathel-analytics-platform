@@ -106,3 +106,22 @@ test("comparison presentation uses backend pp and zero baseline absolute values"
  assert.doesNotMatch(render(DashboardRenderer,{dashboard:dashboard([widget("kpi")],{test:missing})}),/Sin comparación|N\/A|vs\. período anterior/);
  assert.match(render(DashboardRenderer,{dashboard:dashboard([widget("kpi")],{test:metric}),mode:"results"}),/\+5 puntos porcentuales/);
 });
+
+
+test("F2 renders authoritative backend copy and at most three primary findings",()=>{
+ const insights=Array.from({length:5},(_,i)=>({id:`fact${i}`,kind:"change",template_key:"business.fact",text:`Facturación aumentó ${i+2} % respecto del período anterior.`,params:{relative_delta:99+i,metric_label:"inventado"}}));
+ const d=dashboard([widget("insights")],{test:{status:"ok",insights}});
+ const html=render(DashboardRenderer,{dashboard:d,mode:"results"});
+ assert.equal((html.match(/Facturación aumentó/g)??[]).length,3);
+ assert.doesNotMatch(html,/inventado|9900|business.fact/);
+ assert.match(render(DashboardRenderer,{dashboard:d,mode:"dashboard"}),/Ver más/);
+});
+
+
+test("F2 deduplicates concentration already interpreted by a visible chart",()=>{
+ const local={id:"local",template_key:"insight.top_n_concentration",dimension:"field.category",params:{top_n:3,share:.9}};
+ const fact={id:"fact",kind:"concentration",template_key:"business.fact",dimension:"category",text:"No duplicar",params:{top_n:3,share:.9,current:null}};
+ const d=dashboard([widget("ranking","chart"),widget("insights","findings")],{chart:{status:"ok",chart:"ranking",series:[],interpretation:local},findings:{status:"ok",insights:[fact]}});
+ assert.doesNotMatch(render(DashboardRenderer,{dashboard:d,mode:"dashboard"}),/No duplicar|>Hallazgos</);
+ assert.match(render(DashboardRenderer,{dashboard:d,mode:"results"}),/No duplicar/);
+});
