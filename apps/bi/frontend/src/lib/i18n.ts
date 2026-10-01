@@ -131,7 +131,7 @@ export const messages: Record<string, string> = {
   "home.servicesDesc": "Facturación, servicios, profesionales y horas.",
   "home.servicesCta": "Probar Servicios",
   "home.hospitality": "Hotelería",
-  "home.hospitalityDesc": "Ingresos, habitaciones, estadías y ADR.",
+  "home.hospitalityDesc": "Ingresos, habitaciones, estadías y tarifa promedio por noche.",
   "home.hospitalityCta": "Probar Hotelería",
   "home.steps": "De tu archivo al dashboard en 4 pasos",
   "home.step1": "Cargá",
@@ -364,7 +364,7 @@ export const messages: Record<string, string> = {
   "metric.service_hours": "Horas de servicio",
   "metric.revenue_per_hour": "Ingreso por hora",
   "metric.total_nights": "Noches totales",
-  "metric.adr": "Tarifa diaria promedio",
+  "metric.adr": "Tarifa promedio por noche",
   "metric.average_stay": "Estadía media",
   "metric.revenue": "Ingresos",
   "metric.transactions": "Transacciones",
@@ -377,12 +377,14 @@ export const messages: Record<string, string> = {
 export function insightText(key: string, params: Record<string, unknown>): string {
   const number = (value: unknown) => typeof value === "number" ? new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 }).format(value) : String(value ?? "—");
   const percent = (value: unknown) => typeof value === "number" ? new Intl.NumberFormat("es-AR", { style: "percent", maximumFractionDigits: 1 }).format(value) : "—";
+  const period = String(params.period ?? "—");
+  const readablePeriod = /^\d{4}-\d{2}(-\d{2})?$/.test(period) ? new Intl.DateTimeFormat("es-AR", {month:"long",year:"numeric",...(/^\d{4}-\d{2}-\d{2}$/.test(period)?{day:"numeric" as const}:{}) ,timeZone:"UTC"}).format(new Date(period.length===7?`${period}-01T00:00:00Z`:`${period}T00:00:00Z`)) : /^\d{4}Q[1-4]$/.test(period)?`${["enero–marzo","abril–junio","julio–septiembre","octubre–diciembre"][Number(period.at(-1))-1]} de ${period.slice(0,4)}` : period;
   const templates: Record<string, string> = {
     "insight.growth": `Variación respecto del período anterior: ${percent(params.delta_pct)}.`,
     "insight.industry_leader": `${String(params.value ?? "—")} lidera los ingresos con el ${percent(params.share)} del total.`,
     "insight.leader_share": `${String(params.value ?? "—")} concentra el ${percent(params.share)} del total.`,
     "insight.top_n_concentration": `Los ${number(params.top_n)} principales concentran el ${percent(params.share)} del total.`,
-    "insight.peak_period": `El mayor ingreso se registró en ${String(params.period ?? "—")}: ${number(params.value)}.`,
+    "insight.peak_period": `${readablePeriod} fue el período con mayores ingresos: ${number(params.value)}.`,
     "insight.channel_dominance": `El canal ${String(params.channel ?? "—")} concentra el ${percent(params.share)} del total.`,
     "insight.data_quality_alert": `${number(params.count)} hallazgos de calidad afectan al ${percent(params.ratio)} de los datos.`,
   };

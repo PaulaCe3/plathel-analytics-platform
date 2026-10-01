@@ -20,7 +20,7 @@ async function clean(page) {
   await page.keyboard.press("Enter");
   await page.getByRole("link", { name: "Ver resultados" }).click();
   await expect(page.getByRole("heading", { name: "Esto es lo que encontramos", exact: true })).toBeVisible();
-  await page.getByRole("link",{name:"Explorar dashboard",exact:true}).click();
+  await page.getByRole("link",{name:"Explorar mis datos",exact:true}).click();
   await expect(page.getByRole("heading",{name:"Explorá tus datos",exact:true}).first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "Resumen", exact: true })).toBeVisible();
   await expect(page.locator("canvas").first()).toBeVisible();
@@ -54,7 +54,7 @@ async function responsive(page) {
     expect(span).toBe(`span ${width < 768 ? 12 : width < 1024 ? 6 : 3}`);
   }
 }
-for (const [demo, profile, metric, expected] of [["retail_demo", "retail_ecommerce", "Ingresos", "264.000"], ["services_demo", "services", "Horas de servicio", "36"], ["hospitality_demo", "hospitality", "Noches totales", "24"]]) {
+for (const [demo, profile, metric, expected] of [["retail_demo", "retail_ecommerce", "Ventas", "264.000"], ["services_demo", "services", "Horas de servicio", "36"], ["hospitality_demo", "hospitality", "Noches totales", "24"]]) {
   test(`archivo propio ${profile}: mapping, limpieza, filtros, accesibilidad, descarga y borrado`, async ({ page, request }, testInfo) => {
     const fixture = new URL(`../../../backend/demo_data/${demo}/data.csv`, import.meta.url);
     let source = await fs.readFile(fixture, "utf8");
@@ -85,17 +85,17 @@ for (const [demo, profile, metric, expected] of [["retail_demo", "retail_ecommer
     await page.keyboard.press("Enter");
     await expect(page.getByRole("combobox", { name: "Canal", exact: true })).toBeVisible();
     if (profile === "hospitality") {await page.getByText("Más filtros",{exact:true}).click(); await expect(page.getByLabel("Entrada desde", { exact: true })).toHaveAttribute("min", "2026-01-02");}
-    if (profile === "services") {await page.getByText("Elegir qué explorar",{exact:true}).click();const option=page.getByRole("combobox",{name:"Ver datos por"}); const value=await option.locator("option").filter({hasText:"Servicio"}).first().getAttribute("value"); await option.selectOption(value);await expect(page.getByRole("heading", { name: "Servicio", exact: true }).last()).toBeVisible();}
+    if (profile === "services") {const option=page.getByRole("combobox",{name:"Ver datos por"});const value=await option.locator("option").last().getAttribute("value");await option.selectOption(value);await expect(page.locator(".pl-secondary-explorer canvas")).toBeVisible();}
     if (profile === "hospitality") {
-      await expect(page.getByRole("heading", { name: "Tarifa diaria promedio", exact: true })).toHaveCount(0);
+      await expect(page.getByRole("heading", { name: "Tarifa promedio por noche", exact: true })).toHaveCount(0);
       await page.getByRole("combobox", { name: "Moneda", exact: true }).selectOption("ARS");
-      await expect(kpi(page, "Tarifa diaria promedio")).toBeVisible();
+      await expect(kpi(page, "Tarifa promedio por noche")).toBeVisible();
       await expect(page.getByText("11 de 12 filas", { exact: true })).toBeVisible();
       await exportFile(page, testInfo, "xlsx", 11);
     } else {
       await page.getByRole("combobox", { name: "Canal", exact: true }).selectOption("Online");
       await expect(page.getByText("8 de 12 filas", { exact: true })).toBeVisible();
-      if (profile === "retail_ecommerce") await expect(kpi(page, "Ingresos")).toContainText("176.000");
+      if (profile === "retail_ecommerce") await expect(kpi(page, "Ventas")).toContainText("176.000");
       await exportFile(page, testInfo, profile === "retail_ecommerce" ? "csv" : "xlsx", 8);
     }
     await page.getByText("Ver como tabla", { exact: true }).first().click();
@@ -134,13 +134,13 @@ test("error al aplicar filtro se anuncia y permite reintentar", async ({ page, r
   expect((await request.post(`${api}/datasets/${dataset}/validate`)).status()).toBe(200);
   expect((await request.put(`${api}/datasets/${dataset}/cleaning`, { data: { actions: [] } })).status()).toBe(200);
   await page.goto(`/bi/${dataset}/dashboard`);
-  await expect(kpi(page, "Ingresos")).toContainText("264.000");
+  await expect(kpi(page, "Ventas")).toContainText("264.000");
   await page.route("**/api/v1/datasets/*/dashboard", (route) => route.fulfill({ status: 500, contentType: "application/json", body: JSON.stringify({ error: { code: "INTERNAL_ERROR", message: "No pudimos aplicar los filtros.", details: [], request_id: "test" } }) }), { times: 1 });
   await page.getByRole("combobox", { name: "Canal", exact: true }).selectOption("Online");
   await expect(page.getByRole("main").getByRole("alert")).toContainText("No pudimos aplicar los filtros.");
   await accessible(page);
   await page.getByRole("button", { name: "Reintentar", exact: true }).focus(); await page.keyboard.press("Enter");
-  await expect(kpi(page, "Ingresos")).toContainText("176.000");
+  await expect(kpi(page, "Ventas")).toContainText("176.000");
   await expect(page.getByRole("button", { name: "Reintentar", exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Terminar y borrar mis datos" }).click();
   await expect(page).toHaveURL(/deleted=1/);

@@ -14,4 +14,4 @@ La potencia técnica permanece detrás de una experiencia extremadamente simple 
 - Progressive disclosure: detalles, opciones secundarias y explicación del modelo se muestran solo cuando se necesitan.
 - Evitar terminología técnica innecesaria en la experiencia principal.
 
-Estos tres momentos expresan el destino del producto; todavía no reemplazan el flujo implementado de columnas y preparación. Estado real: [[CURRENT_STATE]]. Decisiones: [[DECISIONS]]. Diseño detallado: [sistema visual](../design_system_plathel.md).
+Datos prepara, Resultados explica y Dashboard permite explorar. Columnas y preparación forman parte de Datos. Estado real: [[CURRENT_STATE]]. Decisiones: [[DECISIONS]]. Diseño detallado: [sistema visual](../design_system_plathel.md).

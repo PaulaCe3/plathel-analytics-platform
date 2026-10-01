@@ -9,6 +9,7 @@ export function chartOption(result: ChartResult, label = "Valor"): EChartsOption
   const values = points.map((point) => Number(point[1] ?? 0));
   const horizontal = result.chart !== "timeseries";
   return {
+    animation: false,
     color: ["#596B52", "#3F4D3B", "#75866C", "#98A590", "#BEC6B8"],
     textStyle: { color: "#404245", fontFamily: "Arial, Helvetica, sans-serif" },
     legend: { data: [label], top: 0 },

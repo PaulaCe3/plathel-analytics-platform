@@ -76,3 +76,8 @@ test("Hallazgos shows three initially and retains additional useful findings",()
  assert.equal((html.split("Ver más")[0].match(/<li/g)??[]).length,3);
  assert.match(html,/Grupo 4/);
 });
+
+test("results explains with four KPIs and three findings, without BI charts",()=>{
+const widgets=[...Array.from({length:6},(_,i)=>widget("kpi",`k${i}`)),widget("timeseries","chart"),widget("insights","findings")];const data=Object.fromEntries(widgets.map(w=>[w.id,w.type==="kpi"?{status:"ok",value:1,format:{type:"number",decimals:0}}:w.type==="insights"?{status:"ok",insights:Array.from({length:5},(_,i)=>({id:String(i),template_key:"insight.leader_share",params:{value:`Grupo ${i}`,share:.5}}))}:{status:"ok",series:[]} ]));
+const html=render(DashboardRenderer,{dashboard:dashboard(widgets,data),mode:"results"});assert.equal((html.match(/class="dashboard-widget pl-kpi"/g)??[]).length,4);assert.equal((html.match(/<li/g)??[]).length,3);assert.match(html,/Lo más importante/);assert.doesNotMatch(html,/Gráficos clave|Ver como tabla|Elegir qué explorar/);
+});

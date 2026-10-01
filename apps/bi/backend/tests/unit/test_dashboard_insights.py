@@ -54,4 +54,5 @@ def test_dashboard_builder_uses_same_engine_for_all_profiles(tmp_path):
         assert len(spec.key_chart_ids) <= 4
         assert len(spec.key_chart_ids) == len(set(spec.key_chart_ids))
         assert all(data[chart_id].status == "ok" for chart_id in spec.key_chart_ids)
+        assert all(data[chart_id].meta["dimension"] in available for chart_id in spec.key_chart_ids)
     assert any(section.id == "custom_dimensions" for section in spec.sections)

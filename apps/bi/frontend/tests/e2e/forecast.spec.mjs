@@ -18,3 +18,10 @@ test("Predicciones: historial real, horizonte, evaluación y accesibilidad",asyn
  await page.getByLabel("¿Cuánto tiempo hacia adelante?").selectOption("1");await expect(page.getByRole("heading",{name:"Predicción",exact:true})).toHaveCount(0);
  }finally{await request.delete(`${api}/datasets/${id}`);}
 });
+
+test("PLATHEL: synthetic history demo reaches results with a real prediction",async({page,request})=>{
+ const response=await request.post(`${api}/datasets/demo`,{data:{demo_id:"retail_forecast_demo"}});expect(response.status()).toBe(201);const id=(await response.json()).dataset_id;try{
+ await page.goto(`/bi/${id}/review`);await page.getByRole("button",{name:"Preparar mis datos"}).click();await page.getByRole("link",{name:"Ver resultados",exact:true}).click();await expect(page.getByRole("heading",{name:"Predicción",exact:true})).toBeVisible();await expect(page.getByRole("heading",{name:"Gráficos clave",exact:true})).toHaveCount(0);await expect(page.getByText(/En las pruebas, la predicción tuvo un error promedio/)).toBeVisible();for(const width of [1280,390]){await page.setViewportSize({width,height:900});await accessibleResult(page);await page.screenshot({path:`${process.env.TEMP}/plathel-forecast-results-${width}.png`,fullPage:true});}
+ }finally{await request.delete(`${api}/datasets/${id}`);}
+});
+async function accessibleResult(page){expect((await new AxeBuilder({page}).analyze()).violations).toEqual([]);}

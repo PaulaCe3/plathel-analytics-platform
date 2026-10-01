@@ -90,6 +90,8 @@ Playwright levanta backend en 8100 y frontend en 3100, un worker, sin sleeps de 
 
 [Documento de cierre técnico](docs/fase8_hardening.md). No hay autenticación, base de datos, colas ni almacenamiento cloud.
 
+La demo `retail_forecast_demo` contiene 36 meses consecutivos de datos sintéticos históricos (108 registros) para recorrer preparación, resultados, predicción y exploración sin resultados hardcodeados. Se abre desde los ejemplos de `/bi`.
+
 ## Predicciones
 
 El flujo visible es Datos → Resultados + Predicciones → Dashboard. `/bi/[datasetId]/results` integra las predicciones disponibles usando la misma sesión preparada; `/forecast?dataset=<datasetId>` sigue disponible como entrada compatible. No hay una segunda ingestión. `apps/forecast/backend/src/forecast` contiene contratos, servicio y referencia estacional mensual. `packages/ui` comparte controles, cabecera, EChartsBase, estilos y fuentes locales OFL.

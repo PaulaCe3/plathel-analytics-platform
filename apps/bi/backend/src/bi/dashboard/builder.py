@@ -163,7 +163,7 @@ class DashboardBuilder:
                 if other.value is not None:
                     selected.append(["Otros", other.value, other.value / total if self.metrics.get(metric).additive and total else None])
             points = selected
-        return ChartResult(status="ok" if points else "empty", widget_id=widget.id, chart="timeseries" if widget.type == "timeseries" else "ranking" if widget.type == "ranking" else "breakdown", x_type="time" if widget.type == "timeseries" else "category", grain=grain if widget.type == "timeseries" else None, series=[ChartSeries(key=metric, label_key=f"metric.{metric}", points=points)], meta={"has_others_bucket": any(point[0] == "Otros" for point in points)})
+        return ChartResult(status="ok" if points else "empty", widget_id=widget.id, chart="timeseries" if widget.type == "timeseries" else "ranking" if widget.type == "ranking" else "breakdown", x_type="time" if widget.type == "timeseries" else "category", grain=grain if widget.type == "timeseries" else None, series=[ChartSeries(key=metric, label_key=f"metric.{metric}", points=points)], meta={"has_others_bucket": any(point[0] == "Otros" for point in points), "dimension": dimension})
 
     @staticmethod
     def _period_bounds(value, grain):

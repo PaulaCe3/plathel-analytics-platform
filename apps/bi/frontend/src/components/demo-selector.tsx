@@ -24,6 +24,6 @@ export function DemoSelector() {
   return <section id="demos" tabIndex={-1} className="home-section" aria-labelledby="demos-title" aria-busy={busy}>
     <h2 id="demos-title">{t("home.demos")}</h2><p className="home-demo-intro">{t("home.demosIntro")}</p>
     <div className="home-demo-grid">{kinds.map(kind=>{const demo=demos.find(d=>d.id === `${kind}_demo`);return <article key={kind} className="home-demo-card"><HomeIcon kind={kind}/><h3>{t(`home.${kind}`)}</h3><p>{t(`home.${kind}Desc`)}</p><button disabled={busy || !demo} onClick={()=>demo && openDemo(demo.id)}>{active === demo?.id && busy ? t("home.preparing") : t(`home.${kind}Cta`)} <span aria-hidden="true">→</span></button></article>;})}</div>
-    <p role={failed ? "alert" : "status"} className={`home-feedback ${failed ? "home-error" : ""}`}>{status}</p>
+    <button className="pl-button pl-button--secondary" disabled={busy || !demos.some(demo=>demo.id==="retail_forecast_demo")} onClick={()=>openDemo("retail_forecast_demo")}>Probar historial de 36 meses con predicción</button><p role={failed ? "alert" : "status"} className={`home-feedback ${failed ? "home-error" : ""}`}>{status}</p>
   </section>;
 }

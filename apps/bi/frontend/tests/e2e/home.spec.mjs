@@ -9,7 +9,7 @@ test("home: hero, navigation, responsive and accessibility",async({page})=>{
  await expect(page.getByRole("main")).not.toContainText(/Preparado para distintos|Todo listo para analizar|Convertí tus datos/);
  await expect(page.getByRole("button",{name:"Probar Retail"})).toBeHidden();
  await page.getByText("Probar con datos de ejemplo",{exact:true}).click();await expect(page.getByRole("button",{name:"Probar Retail"})).toBeEnabled();
- for(const width of [390,768,1280]) {await page.setViewportSize({width,height:900});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);}
+ for(const width of [390,768,1280]) {await page.setViewportSize({width,height:900});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);await page.screenshot({path:`${process.env.TEMP}/plathel-data-${width}.png`,fullPage:true});}
  expect((await new AxeBuilder({page}).analyze()).violations).toEqual([]);
 });
 test("home: selection, change, accessible loading and upload error",async({page})=>{

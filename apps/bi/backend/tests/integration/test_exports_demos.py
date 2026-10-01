@@ -136,7 +136,7 @@ def test_demo_to_dashboard_to_export_uses_real_assets(app_client, demo_id, indus
     client, settings = app_client
     listed = client.get("/api/v1/demos")
     assert listed.status_code == 200
-    assert {item["id"] for item in listed.json()} == {"retail_demo", "services_demo", "hospitality_demo"}
+    assert {item["id"] for item in listed.json()} == {"retail_demo", "retail_forecast_demo", "services_demo", "hospitality_demo"}
     created = client.post("/api/v1/datasets/demo", json={"demo_id": demo_id})
     assert created.status_code == 201, created.text
     session = created.json()
