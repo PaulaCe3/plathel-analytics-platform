@@ -25,6 +25,15 @@ class ForecastRequest(BaseModel):
 class ForecastPoint(BaseModel):
     period: str
     value: float
+    lower: float | None = None
+    upper: float | None = None
+
+
+class CandidateEvaluation(BaseModel):
+    model_id: str
+    model: str
+    mae: float
+    evaluations: int
 
 
 class ForecastResult(BaseModel):
@@ -41,5 +50,6 @@ class ForecastResult(BaseModel):
     evaluation_metric: str = "Error absoluto medio"
     evaluation_value: float | None = None
     evaluation_periods: int = 6
+    candidate_evaluations: list[CandidateEvaluation] = Field(default_factory=list)
     interpretation: str = ""
     limitations: list[str] = Field(default_factory=list)

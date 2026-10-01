@@ -9,6 +9,7 @@ from analytics_core.settings import Settings
 from analytics_core.sessions.store import DatasetSessionStore
 from forecast.model import estimate, period_name
 from forecast.models import ForecastPoint
+from forecast.engine import PREDICTION_COVERAGE, _rolling_errors, empirical_range, select_forecast
 from platform_api import create_app
 
 
@@ -23,7 +24,48 @@ def test_seasonal_forecast_and_held_out_evaluation():
     assert result.prediction[0].period=="2022-01"
     assert result.evaluation_value==0
     changed=points();changed[-1]=changed[-1].model_copy(update={"value":18})
-    assert estimate(changed,"quantity","Cantidad",3,today=date(2024,1,1)).evaluation_value==1
+    assert estimate(changed,"quantity","Cantidad",3,today=date(2024,1,1)).evaluation_value==pytest.approx(1/3)
+
+
+def test_model_selection_for_constant_trend_and_seasonality():
+    constant=select_forecast([8.0]*30,3)
+    trend=select_forecast([float(index*4-20) for index in range(30)],3)
+    seasonal=select_forecast([float((index%12+1)**2) for index in range(36)],3)
+    assert constant and constant.candidate.id=="naive"
+    assert trend and trend.candidate.id=="linear_trend"
+    assert seasonal and seasonal.candidate.id=="seasonal_naive"
+    assert trend.mae==pytest.approx(0)
+    assert [round(value) for value in trend.values]==[100,104,108]
+
+
+def test_rolling_origin_uses_only_prior_values_and_requested_horizon():
+    class RecordingCandidate:
+        id="recording";name="Recording";complexity=0;minimum_history=1
+        def __init__(self):self.training=[]
+        def predict(self,history,horizon):self.training.append(list(history));return [history[-1]]*horizon
+    candidate=RecordingCandidate()
+    errors=_rolling_errors(candidate,[float(value) for value in range(20)],4)
+    assert all(len(step)==6 for step in errors)
+    assert all(training==[float(value) for value in range(len(training))] for training in candidate.training)
+    assert max(map(len,candidate.training))==16
+
+
+def test_empirical_ranges_are_asymmetric_finite_and_require_evidence():
+    assert empirical_range(10,[1,2]) is None
+    bounds=empirical_range(10,[-4,-2,1,3,8,10])
+    assert bounds is not None and bounds[0] <= 10 <= bounds[1]
+    assert bounds[1]-10 != 10-bounds[0]
+    assert PREDICTION_COVERAGE==0.80
+
+
+@pytest.mark.parametrize("horizon",[1,4,6])
+def test_forecast_horizon_mae_contract_and_ranges(horizon):
+    result=estimate(points(36),"quantity","Cantidad",horizon,today=date(2024,1,1))
+    assert result.status=="ok" and len(result.prediction)==horizon
+    assert result.evaluation_value==pytest.approx(0)
+    assert result.evaluation_periods >= horizon
+    assert {item.model_id for item in result.candidate_evaluations}=={"naive","seasonal_naive","linear_trend"}
+    assert all(point.lower is not None and point.lower <= point.value <= point.upper for point in result.prediction)
 
 
 @pytest.mark.parametrize("kind",["short","gap","invalid","incomplete","nonfinite"])
@@ -60,6 +102,9 @@ def test_shared_session_forecast_contract_and_raw_immutability(tmp_path):
         result=client.post(path+"/prediction",json={"field":"quantity","horizon":6})
         assert result.status_code==200 and len(result.json()["prediction"])==6
         assert result.json()["evaluation_metric"]=="Error absoluto medio"
+        assert result.json()["evaluation_periods"]==36
+        assert all(point["lower"] <= point["value"] <= point["upper"] for point in result.json()["prediction"])
+        assert {item["model_id"] for item in result.json()["candidate_evaluations"]}=={"naive","seasonal_naive","linear_trend"}
         assert client.post(path+"/prediction",json={"field":"quantity","horizon":7}).status_code==422
         assert client.post(path+"/prediction",json={"field":"not_a_column"}).json()["status"]=="unavailable"
         mixed=table.set_column(3,"currency",pa.array(["ARS"]*35+["USD"]))

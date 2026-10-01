@@ -324,6 +324,17 @@ export interface components {
             /** Industry Id */
             industry_id?: string | null;
         };
+        /** CandidateEvaluation */
+        CandidateEvaluation: {
+            /** Model Id */
+            model_id: string;
+            /** Model */
+            model: string;
+            /** Mae */
+            mae: number;
+            /** Evaluations */
+            evaluations: number;
+        };
         /** ChartResult */
         ChartResult: {
             /**
@@ -819,6 +830,10 @@ export interface components {
             period: string;
             /** Value */
             value: number;
+            /** Lower */
+            lower?: number | null;
+            /** Upper */
+            upper?: number | null;
         };
         /** ForecastRequest */
         ForecastRequest: {
@@ -879,6 +894,8 @@ export interface components {
              * @default 6
              */
             evaluation_periods: number;
+            /** Candidate Evaluations */
+            candidate_evaluations?: components["schemas"]["CandidateEvaluation"][];
             /**
              * Interpretation
              * @default

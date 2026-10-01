@@ -1,7 +1,11 @@
-"""One conservative, deterministic monthly seasonal baseline; no dataframe types."""
+"""Validated monthly forecast facade; model selection lives in the forecast engine."""
 from datetime import date
 from math import isfinite
+
+from forecast.engine import PREDICTION_COVERAGE, empirical_range, select_forecast
 from forecast.models import ForecastPoint, ForecastResult
+
+MIN_HISTORY = 24
 
 
 def month_number(period: str) -> int:
@@ -19,23 +23,36 @@ def estimate(points: list[ForecastPoint], field: str, label: str, horizon: int, 
     result = ForecastResult(status="unavailable", explanation="Necesitamos al menos 24 meses completos consecutivos, con valores válidos y sin meses faltantes.", field=field, label=label, horizon=horizon, excluded_rows=excluded_rows)
     current = today or date.today()
     cutoff = current.year * 12 + current.month - 1
-    history = sorted((point for point in points if month_number(point.period) < cutoff), key=lambda point: point.period)
+    try:
+        history = sorted((point for point in points if month_number(point.period) < cutoff), key=lambda point: point.period)
+    except (TypeError, ValueError):
+        result.explanation = "Hay fechas o valores no válidos. Revisá tus datos antes de crear una predicción."
+        return result
     result.history = history
     result.observations = len(history)
-    result.limitations = ["Se suman los valores por mes; no se rellenan meses sin datos.", "Se omiten el mes actual y las fechas futuras porque no representan meses completos.", "Repite el valor del mismo mes del año anterior; no anticipa cambios de tendencia ni causas externas.", "No se ofrece un intervalo de confianza; la estimación no es una certeza.", "La continuidad de meses no garantiza que el archivo incluya todas las operaciones de cada mes."]
+    result.limitations = ["Se suman los valores por mes; no se rellenan meses sin datos.", "Se omiten el mes actual y las fechas futuras porque no representan meses completos.", "Los modelos usan solo el historial anterior a cada mes evaluado y no incorporan causas externas.", f"El rango estimado refleja errores históricos con cobertura central del {round(PREDICTION_COVERAGE * 100)} %; no garantiza el resultado futuro.", "La continuidad de meses no garantiza que el archivo incluya todas las operaciones de cada mes."]
     if excluded_rows:
         result.explanation = "Hay fechas o valores no válidos. Revisá tus datos antes de crear una predicción."
         return result
-    if len(history) < 24 or any(not isfinite(point.value) for point in history):
+    if len(history) < MIN_HISTORY or any(not isfinite(point.value) for point in history):
         return result
     months = [month_number(point.period) for point in history]
-    if any(right - left != 1 for left, right in zip(months, months[1:])):
+    if len(set(months)) != len(months) or any(right - left != 1 for left, right in zip(months, months[1:])):
         return result
-    # Rolling one-step evaluation on six held-out months; each estimate uses only earlier observations.
-    errors = [abs(history[i].value - history[i - 12].value) for i in range(len(history) - 6, len(history))]
-    result.evaluation_value = sum(errors) / len(errors)
-    result.prediction = [ForecastPoint(period=period_name(months[-1] + step), value=history[-12 + step - 1].value) for step in range(1, horizon + 1)]
+    selected = select_forecast([point.value for point in history], horizon)
+    if selected is None:
+        return result
+    prediction = []
+    for step, value in enumerate(selected.values, start=1):
+        bounds = empirical_range(value, selected.errors_by_step[step - 1])
+        prediction.append(ForecastPoint(period=period_name(months[-1] + step), value=value, lower=bounds[0] if bounds else None, upper=bounds[1] if bounds else None))
     result.status = "ok"
-    result.explanation = f"Estimación del total mensual de {label.lower()} para los {horizon} meses posteriores al último mes observado."
-    result.interpretation = "Si se repite el patrón anual, los próximos meses se aproximarían a los mismos meses del año anterior."
+    result.model = selected.candidate.name
+    result.evaluation_value = selected.mae
+    result.evaluation_periods = selected.evaluations
+    result.candidate_evaluations = selected.candidates
+    result.prediction = prediction
+    result.explanation = f"Estimación del total mensual de {label.lower()} para los {horizon} meses posteriores al último mes observado. Se compararon modelos mediante pruebas históricas sin usar datos futuros."
+    first = prediction[0]
+    result.interpretation = (f"Según el comportamiento histórico, {label.lower()} para {first.period} se estima en {first.value:g}, con un rango estimado de {first.lower:g} a {first.upper:g}." if first.lower is not None and first.upper is not None else f"Según el comportamiento histórico, {label.lower()} para {first.period} se estima en {first.value:g}.")
     return result

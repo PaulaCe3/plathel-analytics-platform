@@ -10,4 +10,6 @@ F3 · Detección de anomalías completada y probada. Método robusto, proteccion
 
 F4 · Exploración y comparación completado y probado. Interacción, contexto de filtros y límites en [[CURRENT_STATE]].
 
+F5 · Forecast 2.0 completado y probado. Selección de modelos, backtesting, rango estimado y límites en [[CURRENT_STATE]].
+
 No hay trabajo futuro adicional aprobado ni fechas comprometidas.
