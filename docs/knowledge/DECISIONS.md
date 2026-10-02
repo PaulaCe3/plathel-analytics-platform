@@ -20,6 +20,7 @@
 | No duplicar ingestion, preparación ni sesiones. | Predicciones consume los datos ya preparados. |
 | Backend calcula; frontend representa. | Contratos TypeScript generados desde OpenAPI, sin duplicar modelos. |
 | No inventar predicciones ni interpretaciones. | Disponibilidad explícita, reglas determinísticas y limitaciones visibles; sin LLM. |
+| PLATHEL Demo usa un único archivo por análisis; la preparación automática es el camino principal y la intervención manual queda como fallback excepcional. | Autopilot reutiliza matcher, perfiles, mapping, validación, limpieza segura y canonical; nunca confirma acciones destructivas. |
 | GitHub conserva el historial del código y de la memoria. | `origin`: https://github.com/PaulaCe3/plathel-analytics-platform.git; rama actual `master`; sin force push. |
 | Estos Markdown son memoria persistente del proyecto. | Fuente de verdad dentro del repositorio; enlazar documentación equivalente en lugar de copiarla. |
 | Obsidian no añade una dependencia operativa. | Markdown estándar y enlaces internos; configuración personal `.obsidian/` excluida de Git. |

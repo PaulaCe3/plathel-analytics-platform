@@ -55,11 +55,10 @@ async function responsive(page) {
   }
 }
 for (const [demo, profile, metric, expected] of [["retail_demo", "retail_ecommerce", "Ventas", "264.000"], ["services_demo", "services", "Horas de servicio", "36"], ["hospitality_demo", "hospitality", "Noches totales", "24"]]) {
-  test(`archivo propio ${profile}: mapping, limpieza, filtros, accesibilidad, descarga y borrado`, async ({ page, request }, testInfo) => {
+  test(`archivo propio ${profile}: autopilot, resultados, filtros, accesibilidad, descarga y borrado`, async ({ page, request }, testInfo) => {
     const fixture = new URL(`../../../backend/demo_data/${demo}/data.csv`, import.meta.url);
     let source = await fs.readFile(fixture, "utf8");
     if (profile === "hospitality") source = source.replace(/,ARS(?=\r?\n|$)/, ",USD");
-    const metadata = JSON.parse(await fs.readFile(new URL(`../../../backend/demo_data/${demo}/demo.json`, import.meta.url), "utf8"));
     const response = await page.goto("/bi");
     expect(response.headers()["x-content-type-options"]).toBe("nosniff");
     expect(response.headers()["content-security-policy"]).toContain("frame-ancestors 'none'");
@@ -67,17 +66,12 @@ for (const [demo, profile, metric, expected] of [["retail_demo", "retail_ecommer
     await accessible(page);
     await page.getByLabel("Archivo de datos").setInputFiles({ name: "propio.csv", mimeType: "text/csv", buffer: Buffer.from(source) });
     await page.getByRole("button", { name: "Continuar" }).click();
-    await page.getByRole("link", { name: "Revisar columnas" }).click();
+    await expect(page).toHaveURL(/\/results$/);
     const dataset = page.url().split("/").at(-2);
-    await page.getByRole("combobox", { name: "Rubro", exact: true }).selectOption(profile);
-    await expect(page.getByRole("status").filter({ hasText: "Las sugerencias se recalcularon" })).toBeVisible();
-    const headers = source.split(/\r?\n/)[0].split(",");
-    if(await page.getByText("Ver todas", {exact:true}).count()) await page.getByText("Ver todas", {exact:true}).click();
-    for (const [index, mapping] of metadata.preset_mapping.entries()) await page.getByLabel(`Revisar columnas: ${headers[index]}`, { exact: true }).selectOption(mapping.disposition === "canonical" ? `field:${mapping.target_field}` : mapping.disposition);
+    await expect(page.getByRole("heading", { name: "Tu negocio, en pocas palabras", exact: true })).toBeVisible();
     await accessible(page);
-    await page.getByRole("button", { name: "Continuar", exact: true }).focus(); await page.keyboard.press("Enter");
-    await expect(page).toHaveURL(/review$/);
-    await clean(page);
+    await page.getByRole("link",{name:"Explorar mis datos",exact:true}).click();
+    await expect(page.getByRole("heading",{name:"Explorá tus datos",exact:true}).first()).toBeVisible();
     await expect(kpi(page, metric)).toContainText(expected);
     await expect(page.getByRole("combobox", { name: "Canal", exact: true })).toBeVisible();
     if (profile === "hospitality") {await page.getByText("Más filtros",{exact:true}).click(); await page.getByRole("combobox",{name:"Entrada",exact:true}).selectOption("custom"); await expect(page.getByLabel("Entrada desde", { exact: true })).toHaveAttribute("min", "2026-01-02");}

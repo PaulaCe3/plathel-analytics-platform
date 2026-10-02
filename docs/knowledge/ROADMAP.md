@@ -12,4 +12,6 @@ F4 · Exploración y comparación completado y probado. Interacción, contexto d
 
 F5 · Forecast 2.0 completado y probado. Selección de modelos, backtesting, rango estimado y límites en [[CURRENT_STATE]].
 
+F6 · Single-file Autopilot completado y probado. Perfil, mapping, preparación segura y fallback en [[CURRENT_STATE]].
+
 No hay trabajo futuro adicional aprobado ni fechas comprometidas.

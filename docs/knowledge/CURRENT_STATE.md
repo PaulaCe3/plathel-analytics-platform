@@ -1,6 +1,6 @@
 # Estado actual
 
-Snapshot: 2026-10-01. Último checkpoint estable previo: `6826c9e` — `feat: add interactive exploration and comparison`, subido a `origin/master`. Esta actualización acompaña `feat: improve forecast model selection and uncertainty`; su hash se consulta en Git.
+Snapshot: 2026-10-02. Último checkpoint estable previo: `4e2e2ef` — `feat: improve forecast model selection and uncertainty`, subido a `origin/master`. Esta actualización acompaña `feat: automate single-file analysis workflow`; su hash se consulta en Git.
 
 Implementado: Datos prepara; Resultados explica; Dashboard permite explorar. Resultados ofrece una lectura narrativa con hasta dos números, tres hallazgos y predicción integrada. Dashboard presenta hasta cinco KPIs disponibles, evolución y un único desglose con selector; las interpretaciones locales no repiten hallazgos generales. Toolbar con períodos rápidos relativos a la última fecha del archivo, fechas manuales solo en Personalizado, chips activos y Limpiar comparten estado con barras y tablas accesibles. Exportar está junto al título y conserva el contexto mostrado. Opciones agrupa revisión, privacidad y borrado; Sobre estos datos mantiene calidad y limitaciones colapsadas. Se omiten secciones vacías y estados sin acción útil.
 
@@ -16,6 +16,8 @@ F4 implementado: el cross-filter alterna una selección al repetirla, reemplaza 
 
 F5 implementado: Forecast prueba último valor, referencia estacional anual y tendencia lineal mediante una interfaz común. Rolling-origin evalúa el horizonte solicitado sin usar observaciones futuras, selecciona por MAE con desempate determinístico hacia el método más simple y conserva la evaluación de candidatos. Cada punto futuro incorpora un rango estimado empírico central del 80 % cuando existen suficientes errores históricos para ese horizonte. Resultados muestra estimación, banda, tabla accesible y metodología secundaria en lenguaje no técnico.
 
+F6 implementado: al cargar un único CSV o XLSX, Autopilot evalúa perfiles existentes, acepta únicamente mappings de alta confianza sin conflictos, valida y construye canonical mediante el pipeline existente. Aplica solo acciones seleccionadas no destructivas, deja duplicados y filas intactos, y redirige a Resultados. Cuando no identifica con seguridad una fecha y una métrica, o la validación esencial falla, conserva el flujo manual como corrección mínima.
+
 Rutas: `/bi`, `/bi/[datasetId]/mapping`, `/bi/[datasetId]/review`, `/bi/[datasetId]/results`, `/bi/[datasetId]/dashboard`; `/forecast?dataset=<datasetId>` conserva compatibilidad. API y comandos: [README](../../README.md).
 
 Validación F3: 125 tests backend relevantes y 31 frontend aprobados; E2E crítico sobre el build final comprobó detección y recálculo por filtro. Casos dirigidos: anomalías altas/bajas y múltiples, normalidad, historial insuficiente, series constantes, MAD cero, períodos incompletos/discontinuos, nulls, negativos, moneda mixta, filtros, terminología por perfil, priorización y deduplicación con F2. Lint, TypeScript, build, cuatro contratos import-linter y diff check aprobados. Contratos TypeScript regenerados desde OpenAPI, sin endpoints ni dependencias nuevas.
@@ -23,6 +25,8 @@ Validación F3: 125 tests backend relevantes y 31 frontend aprobados; E2E críti
 Validación F4: comparación de segmentos, filtros combinados, moneda mixta, métricas por industria, dimensión/valor inválido, selección distinta, toggle y reemplazo de cross-filter, grupo Otros no interactivo y presentación neutral cubiertos por tests backend, frontend y E2E. Contratos TypeScript regenerados desde OpenAPI, sin endpoint ni dependencia nueva.
 
 Validación F5: series constantes, con tendencia y estacionales; selección, MAE, desempate, horizonte 1–6, ausencia de leakage, rangos asimétricos, evidencia insuficiente, negativos, meses faltantes, historial insuficiente, período incompleto, valores inválidos, moneda mixta, contrato API y presentación accesible cubiertos por tests dirigidos. Contratos TypeScript regenerados desde OpenAPI, sin dependencia nueva.
+
+Validación F6: CSV/XLSX, selección de Retail/Servicios/Hotelería, fallback Custom, mapping seguro, columna ambigua no esencial, normalización no destructiva, duplicados conservados, bloqueos reales, dataset ready, Resultados, Dashboard y disponibilidad opcional de forecast cubiertos por backend y E2E. Contratos TypeScript regenerados desde OpenAPI, sin dependencia nueva.
 
 
 Limitaciones F2: divergencia solo para facturación/margen bruto con poblaciones completas y períodos iguales; sin baseline comparable no hay cambio por segmento. Contribuciones exigen reconciliación aditiva y cambio neto distinto de cero.
@@ -32,6 +36,8 @@ Limitaciones F3: requiere ocho períodos completos y consecutivos; no modela est
 Limitaciones F4: la comparación admite dos segmentos de una sola dimensión por vez y no persiste al salir de Dashboard. Solo muestra métricas calculables para ambos segmentos bajo el contexto activo.
 
 Limitaciones F5: usa únicamente el historial mensual del target, sin variables externas ni ajuste explícito de estacionalidades distintas de doce meses. El rango refleja los últimos orígenes históricos evaluables y no garantiza cobertura futura.
+
+Limitaciones F6: procesa un archivo por análisis y solo automatiza asignaciones de alta confianza. Archivos sin fecha/métrica segura, con conflictos esenciales o con valores esenciales mayormente inválidos requieren corrección manual.
 
 Limitaciones: forecast mensual requiere 24 meses completos consecutivos y estima 1–6 meses desde el último observado. La demo es histórica y sintética, no una proyección del calendario actual. Cross-filter requiere una dimensión filtrable identificada por el contrato; no aplica a series temporales ni al grupo Otros. Controles globales y tablas conservan la alternativa de teclado. Axe no constituye certificación exhaustiva.
 

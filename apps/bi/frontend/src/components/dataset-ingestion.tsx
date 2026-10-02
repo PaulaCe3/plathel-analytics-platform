@@ -2,6 +2,7 @@
 import { t } from "@/lib/i18n";
 
 import { FormEvent, useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 import {
   Dataset,
@@ -9,6 +10,7 @@ import {
   deleteDataset,
   getDatasetPreview,
   selectDatasetSheet,
+  runAutopilot,
   uploadDataset,
 } from "@/lib/api/datasets";
 
@@ -17,6 +19,7 @@ import { ApiClientError } from "@/lib/api/client";
 import { HomeIcon } from "@/components/home-sections";
 
 export function DatasetIngestion() {
+  const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [dataset, setDataset] = useState<Dataset | null>(null);
@@ -26,6 +29,7 @@ export function DatasetIngestion() {
   const [error, setError] = useState("");
   const [maxMb, setMaxMb] = useState<number | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [processingStep, setProcessingStep] = useState(0);
   function loadLimit() { getMeta().then(meta => {setMaxMb(meta.max_file_mb);setError("");}).catch(()=>setError(t("home.metaError"))); }
   useEffect(()=>{getMeta().then(meta=>setMaxMb(meta.max_file_mb)).catch(()=>setError(t("home.metaError")));},[]);
   function chooseFile(candidate: File | null) {
@@ -53,11 +57,21 @@ export function DatasetIngestion() {
     try {
       const created = await uploadDataset(file);
       setDataset(created);
+      setProcessingStep(1);
+      setStatus("Estamos preparando tus datos");
+      setProcessingStep(2);
+      const result = await runAutopilot(created.dataset_id);
+      setProcessingStep(3);
+      if(result.status === "ready") {
+        setProcessingStep(4);
+        router.push(`/bi/${created.dataset_id}/results`);
+        return;
+      }
       await refreshPreview(created);
-      setStatus(t("dataset-ingestion.status1"));
+      setStatus(result.explanation);
     } catch (error) {
       setError(error instanceof ApiClientError && error.status === 429 ? error.message : error instanceof ApiClientError && error.status === 413 ? `${t("home.tooLarge")} ${maxMb} MB.` : t("home.unreadable"));
-      setStatus("");
+      setStatus(""); setProcessingStep(0);
     } finally {
       setBusy(false);
     }
@@ -101,7 +115,8 @@ export function DatasetIngestion() {
           {file ? <><strong><span aria-hidden="true">✓ </span>{safeName}</strong><p>{new Intl.NumberFormat("es-AR",{maximumFractionDigits:2}).format(file.size / 1024 / 1024)} MB</p><div className="home-file-actions"><button type="submit" className="home-primary" disabled={busy || !!dataset || maxMb == null}>{busy ? t("home.preparing") : t("home.continue")}</button><button type="button" className="home-secondary" disabled={busy || !!dataset} onClick={()=>{if(inputRef.current){inputRef.current.value="";inputRef.current.click();}}}>{t("home.change")}</button></div></> : <><strong>{t("home.drop")}</strong><p>{t("home.or")}</p><button type="button" className="home-primary" disabled={busy} onClick={()=>inputRef.current?.click()}>{t("home.select")}</button></>}
           <p>{t("home.format")}{maxMb != null ? ` · ${t("home.limit")} ${maxMb} MB` : ""}</p>
         </div>
-        <div role="status" aria-live="polite" className="home-feedback">{busy ? <span className="home-loading"><span aria-hidden="true" className="home-spinner"/>{t("home.preparing")}</span> : file ? status : ""}</div>
+        <div role="status" aria-live="polite" className="home-feedback">{busy ? <span className="home-loading"><span aria-hidden="true" className="home-spinner"/>Estamos preparando tus datos</span> : file ? status : ""}</div>
+        {busy&&processingStep>0&&<ol className="home-processing" aria-label="Progreso de preparación">{["Archivo recibido","Información identificada","Datos preparados","Generando análisis"].map((label,index)=><li key={label} aria-current={processingStep===index+1?"step":undefined}><span aria-hidden="true">{processingStep>index?"✓":"○"}</span> {label}</li>)}</ol>}
         {error && <p role="alert" className="home-feedback home-error">{error} {maxMb == null && <button type="button" className="home-secondary" onClick={loadLimit}>{t("home.retry")}</button>}</p>}
       </form>
       </section>
@@ -129,7 +144,7 @@ export function DatasetIngestion() {
               <tbody>{preview.rows.map((row, index) => <tr key={index}>{preview.columns.map((column) => <td key={column.key} className="max-w-64 truncate border-b border-slate-100 px-3 py-2 text-slate-700">{row[column.key] ?? "—"}</td>)}</tr>)}</tbody>
             </table>
           </div></details>
-          <a href={`/bi/${dataset.dataset_id}/mapping`} className="mt-6 inline-flex rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white">{t("home.columns")}</a>
+          <a href={`/bi/${dataset.dataset_id}/mapping`} className="mt-6 inline-flex rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white">Corregir lo necesario</a>
         </section>
       )}
     </div>

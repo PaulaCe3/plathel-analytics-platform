@@ -4,6 +4,7 @@ import { apiRequest } from "./client";
 
 export type Dataset = components["schemas"]["DatasetResponse"];
 export type DatasetPreview = components["schemas"]["PreviewResponse"];
+export type AutopilotResult = components["schemas"]["AutopilotResponse"];
 
 export async function uploadDataset(file: File): Promise<Dataset> {
   const body = new FormData();
@@ -13,6 +14,10 @@ export async function uploadDataset(file: File): Promise<Dataset> {
 
 export function getDatasetPreview(datasetId: string): Promise<DatasetPreview> {
   return apiRequest<DatasetPreview>(`/api/v1/datasets/${datasetId}/preview?rows=50`);
+}
+
+export function runAutopilot(datasetId: string): Promise<AutopilotResult> {
+  return apiRequest<AutopilotResult>(`/api/v1/datasets/${datasetId}/autopilot`, { method: "POST" });
 }
 
 export function selectDatasetSheet(datasetId: string, sheet: string): Promise<Dataset> {

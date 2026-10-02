@@ -2,6 +2,7 @@
 
 from datetime import datetime
 
+from typing import Literal
 from pydantic import BaseModel, Field
 
 from analytics_core.ingestion.models import ColumnMetadata, SourceSettings
@@ -47,3 +48,12 @@ class PreviewResponse(BaseModel):
     columns: list[ColumnMetadata]
     rows: list[dict[str, str | None]]
     warnings: list[str]
+
+
+class AutopilotResponse(BaseModel):
+    dataset_id: str
+    status: Literal["ready", "intervention_required"]
+    stage: str
+    profile_id: str
+    explanation: str
+    destination: str

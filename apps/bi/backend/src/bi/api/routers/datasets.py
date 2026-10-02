@@ -7,7 +7,7 @@ from starlette.concurrency import run_in_threadpool
 
 from analytics_core.ingestion.models import SourceSettings
 from bi.api.deps import DatasetServiceDep, SettingsDep
-from bi.api.schemas.datasets import DatasetPatch, DatasetResponse, PreviewResponse
+from bi.api.schemas.datasets import AutopilotResponse, DatasetPatch, DatasetResponse, PreviewResponse
 
 router = APIRouter(prefix="/datasets", tags=["datasets"])
 
@@ -26,6 +26,11 @@ async def create_dataset(
 async def get_dataset(dataset_id: str, service: DatasetServiceDep) -> DatasetResponse:
     session = await run_in_threadpool(service.get, dataset_id)
     return DatasetResponse.model_validate(session, from_attributes=True)
+
+
+@router.post("/{dataset_id}/autopilot", response_model=AutopilotResponse)
+async def run_autopilot(dataset_id: str, service: DatasetServiceDep) -> AutopilotResponse:
+    return AutopilotResponse.model_validate(await run_in_threadpool(service.autopilot, dataset_id))
 
 
 @router.get("/{dataset_id}/preview", response_model=PreviewResponse)
