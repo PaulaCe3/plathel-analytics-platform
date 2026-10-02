@@ -17,13 +17,14 @@ export function DemoSelector() {
     setActive(id); setFailed(false); setBusy(true); setStatus(t("demo-selector.text2"));
     try {
       const dataset = await createDemo(id);
-      router.push(`/bi/${dataset.dataset_id}/${dataset.stage === "mapped" ? "review" : "mapping"}`);
+      router.push(`/bi/${dataset.dataset_id}/results`);
     } catch (error) { setStatus(error instanceof Error ? error.message : t("demo-selector.text3")); setBusy(false); setFailed(true); }
   }
   const kinds = ["retail", "services", "hospitality"];
   return <section id="demos" tabIndex={-1} className="home-section" aria-labelledby="demos-title" aria-busy={busy}>
-    <h2 id="demos-title">{t("home.demos")}</h2><p className="home-demo-intro">{t("home.demosIntro")}</p>
-    <div className="home-demo-grid">{kinds.map(kind=>{const demo=demos.find(d=>d.id === (kind==="retail"?"retail_forecast_demo":`${kind}_demo`));return <article key={kind} className="home-demo-card"><HomeIcon kind={kind}/><h3>{t(`home.${kind}`)}</h3><p>{t(`home.${kind}Desc`)}</p><button disabled={busy || !demo} onClick={()=>demo && openDemo(demo.id)}>{active === demo?.id && busy ? t("home.preparing") : t(`home.${kind}Cta`)} <span aria-hidden="true">→</span></button></article>;})}</div>
+    <h2 id="demos-title">Elegí una demostración</h2>
+    <div className="home-demo-grid">{kinds.map(kind=>{const demo=demos.find(d=>d.id === (kind==="retail"?"retail_forecast_demo":`${kind}_demo`));return <article key={kind} className="home-demo-card"><HomeIcon kind={kind}/><h3>{t(`home.${kind}`)}</h3><p>{t(`home.${kind}Desc`)}</p><button disabled={busy || !demo} onClick={()=>demo && openDemo(demo.id)}>{active === demo?.id && busy ? "Preparando la demostración…" : "Explorar demo"} <span aria-hidden="true">→</span></button></article>;})}</div>
+    {busy && <div className="home-demo-progress" role="status" aria-live="polite"><strong>Preparando la demostración</strong><ul><li>✓ Datos preparados</li><li>✓ Análisis generado</li><li>○ Preparando resultados</li></ul></div>}
     <p role={failed ? "alert" : "status"} className={`home-feedback ${failed ? "home-error" : ""}`}>{status}</p>
   </section>;
 }

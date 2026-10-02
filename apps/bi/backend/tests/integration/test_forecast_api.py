@@ -130,8 +130,7 @@ def test_forecast_demo_real_pipeline(tmp_path):
         response = client.post("/api/v1/datasets/demo", json={"demo_id": "retail_forecast_demo"})
         assert response.status_code == 201
         dataset = response.json()["dataset_id"]
-        assert client.post(f"/api/v1/datasets/{dataset}/validate").status_code == 200
-        assert client.put(f"/api/v1/datasets/{dataset}/cleaning", json={"actions": []}).status_code == 200
+        assert response.json()["stage"] == "ready"
         assert client.post(f"/api/v1/datasets/{dataset}/dashboard", json={}).status_code == 200
         forecast = client.post(f"/api/v1/forecast/datasets/{dataset}/prediction", json={"field": "quantity", "horizon": 3})
         assert forecast.status_code == 200

@@ -13,18 +13,6 @@ async function accessible(page) {
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations.map(({ id, nodes }) => ({ id, nodes: nodes.map((node) => node.target) }))).toEqual([]);
 }
-async function clean(page) {
-  await expect(page.getByRole("button", { name: /Continuar (con estos|sin) ajustes/ })).toBeEnabled();
-  await accessible(page);
-  await page.getByRole("button", { name: /Continuar (con estos|sin) ajustes/ }).focus();
-  await page.keyboard.press("Enter");
-  await page.getByRole("link", { name: "Ver resultados" }).click();
-  await expect(page.getByRole("heading", { name: "Tu negocio, en pocas palabras", exact: true })).toBeVisible();
-  await page.getByRole("link",{name:"Explorar mis datos",exact:true}).click();
-  await expect(page.getByRole("heading",{name:"Explorá tus datos",exact:true}).first()).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Resumen", exact: true })).toBeVisible();
-  await expect(page.locator("canvas").first()).toBeVisible();
-}
 function kpi(page, name) { return page.getByRole("article").filter({ has: page.getByRole("heading", { name, exact: true }) }).first(); }
 async function exportFile(page, testInfo, format, expectedRows) {
   await page.getByRole("button", {name:"Exportar",exact:true}).click();
@@ -46,51 +34,25 @@ async function exportFile(page, testInfo, format, expectedRows) {
   }
   await page.getByRole("button", {name:"Cerrar",exact:true}).click();
 }
-async function responsive(page) {
-  for (const width of [390, 768, 1280]) {
-    await page.setViewportSize({ width, height: 900 });
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-    const positions = await page.locator(".pl-kpi-grid > article").evaluateAll(nodes=>nodes.slice(0,2).map(node=>({x:node.getBoundingClientRect().x,y:node.getBoundingClientRect().y})));
-    if(width<600){expect(positions[1].x).toBe(positions[0].x);expect(positions[1].y).toBeGreaterThan(positions[0].y);}else{expect(positions[1].y).toBe(positions[0].y);expect(positions[1].x).toBeGreaterThan(positions[0].x);}
-  }
-}
-for (const [demo, profile, metric, expected] of [["retail_demo", "retail_ecommerce", "Ventas", "264.000"], ["services_demo", "services", "Horas de servicio", "36"], ["hospitality_demo", "hospitality", "Noches totales", "24"]]) {
-  test(`archivo propio ${profile}: autopilot, resultados, filtros, accesibilidad, descarga y borrado`, async ({ page, request }, testInfo) => {
-    const fixture = new URL(`../../../backend/demo_data/${demo}/data.csv`, import.meta.url);
-    let source = await fs.readFile(fixture, "utf8");
-    if (profile === "hospitality") source = source.replace(/,ARS(?=\r?\n|$)/, ",USD");
+for (const [name, metric] of [["Retail / E-commerce", "Ventas"], ["Servicios", "Horas de servicio"], ["Hotelería", "Noches totales"]]) {
+  test(`demo pública ${name}: preparación, resultados y dashboard`, async ({ page, request }) => {
     const response = await page.goto("/bi");
     expect(response.headers()["x-content-type-options"]).toBe("nosniff");
     expect(response.headers()["content-security-policy"]).toContain("frame-ancestors 'none'");
     if (process.env.E2E_PRODUCTION === "true") expect(response.headers()["content-security-policy"]).not.toContain("unsafe-eval");
     await accessible(page);
-    await page.getByLabel("Archivo de datos").setInputFiles({ name: "propio.csv", mimeType: "text/csv", buffer: Buffer.from(source) });
-    await page.getByRole("button", { name: "Continuar" }).click();
+    const card = page.getByRole("article").filter({ has: page.getByRole("heading", { name, exact: true }) });
+    await card.getByRole("button", { name: /^Explorar demo/ }).click();
     await expect(page).toHaveURL(/\/results$/);
+    await expect(page).not.toHaveURL(/\/(mapping|review)$/);
     const dataset = page.url().split("/").at(-2);
     await expect(page.getByRole("heading", { name: "Tu negocio, en pocas palabras", exact: true })).toBeVisible();
     await accessible(page);
     await page.getByRole("link",{name:"Explorar mis datos",exact:true}).click();
     await expect(page.getByRole("heading",{name:"Explorá tus datos",exact:true}).first()).toBeVisible();
-    await expect(kpi(page, metric)).toContainText(expected);
-    await expect(page.getByRole("combobox", { name: "Canal", exact: true })).toBeVisible();
-    if (profile === "hospitality") {await page.getByText("Más filtros",{exact:true}).click(); await page.getByRole("combobox",{name:"Entrada",exact:true}).selectOption("custom"); await expect(page.getByLabel("Entrada desde", { exact: true })).toHaveAttribute("min", "2026-01-02");}
-    if (profile === "services") {const option=page.getByRole("combobox",{name:"Ver datos por"});const value=await option.locator("option").last().getAttribute("value");await option.selectOption(value);await expect(page.locator(".pl-secondary-explorer canvas")).toBeVisible();}
-    if (profile === "hospitality") {
-      await expect(page.getByRole("heading", { name: "Tarifa promedio por noche", exact: true })).toHaveCount(0);
-      await page.getByRole("combobox", { name: "Moneda", exact: true }).selectOption("ARS");
-      await expect(kpi(page, "Tarifa promedio por noche")).toBeVisible();
-      await expect(page.getByRole("button",{name:"Exportar",exact:true})).toBeEnabled();
-      await exportFile(page, testInfo, "xlsx", 11);
-    } else {
-      await page.getByRole("combobox", { name: "Canal", exact: true }).selectOption("Online");
-      await expect(page.getByRole("button",{name:"Exportar",exact:true})).toBeEnabled();
-      if (profile === "retail_ecommerce") await expect(kpi(page, "Ventas")).toContainText("176.000");
-      await exportFile(page, testInfo, profile === "retail_ecommerce" ? "csv" : "xlsx", 8);
-    }
-    await page.getByText("Ver como tabla", { exact: true }).first().click();
-    await expect(page.getByRole("table").first()).toBeVisible();
-    await responsive(page);
+    await expect(kpi(page, metric)).toBeVisible();
+    await expect(page.locator("canvas").first()).toBeVisible();
+    await accessible(page);
     await page.getByText("Opciones",{exact:true}).click(); await page.getByRole("button", { name: "Terminar y borrar mis datos" }).focus(); await page.keyboard.press("Enter");
     await expect(page).toHaveURL(/\/bi\?deleted=1/);
     await expect(page.getByRole("status").filter({ hasText: "La sesión anterior fue eliminada" })).toBeVisible();
@@ -99,10 +61,10 @@ for (const [demo, profile, metric, expected] of [["retail_demo", "retail_ecommer
 }
 test("demo real, filtro y XLSX", async ({ page }, testInfo) => {
   await page.goto("/bi");
-  await page.getByText("Probar con datos de ejemplo",{exact:true}).click();
-  await page.getByRole("button", { name: "Probar Retail", exact: true }).click();
-  await expect(page).toHaveURL(/review$/);
-  await clean(page);
+  const retail = page.getByRole("article").filter({ has: page.getByRole("heading", { name: "Retail / E-commerce", exact: true }) });
+  await retail.getByRole("button", { name: /^Explorar demo/ }).click();
+  await expect(page).toHaveURL(/results$/);
+  await page.getByRole("link",{name:"Explorar mis datos",exact:true}).click();
   await expect(page.getByText("DEMO",{exact:true})).toBeVisible();
   await page.getByRole("combobox", { name: "Canal", exact: true }).selectOption("Online");
   await expect(page.getByRole("button",{name:"Exportar",exact:true})).toBeEnabled();

@@ -1,53 +1,26 @@
-# DATA ANALYTICS PLATFORM — Repository Instructions
+# PLATHEL — mapa para Codex
 
-## Source of truth
-La arquitectura oficial vive en:
-docs/arquitectura_bi_multiindustria.md
+## Consulta según la tarea
+No leer toda la memoria por defecto; consultar solo lo pertinente:
+- Producto, UX o alcance: [docs/CONTEXT.md](docs/CONTEXT.md).
+- Backend, datos, API o contratos: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); contiene reglas y mapa de secciones de la arquitectura oficial.
+- UI, marca, componentes o accesibilidad: [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md).
+- Decisiones y restricciones aceptadas: buscar el tema en [docs/DECISIONS.md](docs/DECISIONS.md).
+- Funcionalidades implementadas y límites: buscar el tema en [docs/knowledge/CURRENT_STATE.md](docs/knowledge/CURRENT_STATE.md).
+- Planificación solamente: [docs/knowledge/ROADMAP.md](docs/knowledge/ROADMAP.md).
+- Instalación, comandos y operación: sección pertinente de [README.md](README.md).
 
-Para cada tarea, lee solo las secciones relevantes de ese documento, no todo el archivo salvo que sea necesario.
+## Trabajo localizado
+- Revisar `git status` antes de modificar; conservar trabajo previo y contratos funcionales.
+- Empezar por los archivos mencionados en la tarea. Buscar con `rg` antes de leer archivos completos; leer solo rangos/secciones relevantes.
+- Expandir la exploración solo cuando sea necesario. No escanear todo el repositorio salvo necesidad estricta.
+- Preferir cambios mínimos y localizados; no modificar archivos no relacionados.
+- Reutilizar componentes y abstracciones existentes antes de crear nuevas.
+- La fase actual la define el prompt. No avanzar de fase ni agregar microservicios, ORM, base de datos, colas, autenticación, pagos, LLM o infraestructura no solicitada.
+- Ejecutar primero los tests más específicos; suite completa solo si el cambio lo justifica. Para cambios de código ejecutar import-linter; lint/typecheck/build cuando corresponda. Para documentación verificar rutas y `git diff --check`.
+- No declarar una función verificada sin ejecutarla.
+- No explicar comandos rutinarios; informar bloqueos importantes. Respuesta final breve, máximo 20 líneas.
+- No hacer commits ni push salvo pedido explícito del usuario.
 
-## Memoria persistente
-Antes de una tarea importante, leer:
-- docs/knowledge/PLATHEL_CONTEXT.md
-- docs/knowledge/PRODUCT_VISION.md
-- docs/knowledge/DECISIONS.md
-- docs/knowledge/CURRENT_STATE.md
-
-Leer ROADMAP.md solo cuando la tarea afecte planificación. Después de una implementación importante, actualizar únicamente los documentos cuya información cambió. Mantener memoria breve, factual y útil: enlazar documentación existente; no duplicarla, guardar logs ni razonamientos internos, ni convertir la memoria en un diario.
-
-La memoria se versiona con el código. La configuración personal `.obsidian/` no se versiona. No instalar plugins ni depender de APIs externas para usar esta memoria.
-
-## Architectural rules
-- analytics_core nunca importa bi.
-- pandas/numpy solo pueden importarse dentro de analytics_core/engine/pandas_impl/.
-- API: routers → services → core. Los routers no contienen lógica de negocio.
-- El backend calcula la lógica analítica; el frontend renderiza.
-- Los contratos TypeScript se generan desde FastAPI/OpenAPI. No duplicar modelos manualmente.
-- raw.parquet nunca se modifica.
-- canonical se reconstruye desde raw + mapping + configuración + acciones.
-- Issue y Transformation son conceptos distintos.
-- Ninguna transformación de datos puede ser silenciosa.
-- No agregar microservicios, ORM, base de datos, colas, autenticación, pagos, LLM ni infraestructura no solicitada.
-- No implementar funcionalidades de fases posteriores.
-- Agregar una industria no debe requerir modificar analytics_core.
-
-## Workflow
-Antes de modificar:
-1. revisar git status;
-2. inspeccionar implementación existente;
-3. conservar contratos funcionales.
-
-Después de modificar:
-- ejecutar los tests relevantes;
-- ejecutar import-linter;
-- ejecutar lint/typecheck/build solo cuando corresponda;
-- no declarar una función como verificada sin haberla ejecutado.
-
-## Scope
-La fase actual siempre está definida por el prompt de la tarea.
-No avanzar a la fase siguiente sin autorización explícita.
-
-## Responses
-Trabaja sin narrar cada comando.
-Informa solo bloqueos importantes.
-El informe final debe ser breve: máximo 20 líneas.
+## Memoria versionada
+Actualizar solo información que cambió en su fuente correspondiente; enlazar en lugar de duplicar. Mantenerla breve, factual y útil, sin logs, razonamientos internos ni diario. La memoria vive en Markdown del repositorio; `.obsidian/` es configuración personal no versionada. No instalar plugins ni depender de APIs externas para usarla.

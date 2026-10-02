@@ -140,14 +140,13 @@ def test_demo_to_dashboard_to_export_uses_real_assets(app_client, demo_id, indus
     created = client.post("/api/v1/datasets/demo", json={"demo_id": demo_id})
     assert created.status_code == 201, created.text
     session = created.json()
-    assert session["industry_id"] == industry and session["demo_id"] == demo_id and session["stage"] == "mapped"
+    assert session["industry_id"] == industry and session["demo_id"] == demo_id and session["stage"] == "ready"
     dataset = session["dataset_id"]
     metadata = json.loads((DEMO_ROOT / demo_id / "demo.json").read_text(encoding="utf-8"))
     current_mapping = client.get(f"/api/v1/datasets/{dataset}/mapping").json()["mappings"]
     assert current_mapping == metadata["preset_mapping"]
-    validation = client.post(f"/api/v1/datasets/{dataset}/validate")
-    assert validation.status_code == 200 and validation.json()["validation"]["valid"]
-    ready(client, dataset)
+    assert session["validation_status"] == "valid"
+    assert session["cleaning_confirmed"] is True
     dashboard = client.post(f"/api/v1/datasets/{dataset}/dashboard", json={})
     assert dashboard.status_code == 200, dashboard.text
     body = dashboard.json()
