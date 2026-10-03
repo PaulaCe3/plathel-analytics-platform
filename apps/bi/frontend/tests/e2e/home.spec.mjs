@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+const api = "http://127.0.0.1:8100/api/v1";
 
 test("home pública: solo ofrece las tres demos y explica su alcance", async ({ page }) => {
   await page.goto("/bi");
@@ -28,6 +29,18 @@ test("home pública: la demo se activa por teclado y abre Resultados sin pasos t
   await expect(page).toHaveURL(/\/bi\/[^/]+\/results$/);
   await expect(page).not.toHaveURL(/\/(mapping|review)$/);
   await expect(page.getByRole("heading", { name: "Tu negocio, en pocas palabras", exact: true })).toBeVisible();
+});
+
+test("home pública: las tres demos completan el recorrido crítico", async ({ page, request }) => {
+  for (const name of ["Retail / E-commerce", "Servicios", "Hotelería"]) {
+    await page.goto("/bi");
+    const option = page.getByRole("article").filter({ has: page.getByRole("heading", { name, exact: true }) });
+    await option.getByRole("button", { name: /^Explorar demo/ }).click();
+    await expect(page).toHaveURL(/\/bi\/[^/]+\/results$/);
+    await expect(page.getByRole("heading", { name: "Tu negocio, en pocas palabras", exact: true })).toBeVisible();
+    const id = page.url().split("/").at(-2);
+    await request.delete(`${api}/datasets/${id}`);
+  }
 });
 
 test("home: el aviso de sesión eliminada vence y conserva otros parámetros", async ({ page }) => {

@@ -20,8 +20,10 @@ Alcance: Análisis y Predicciones. Wordmark textual temporal: no hay isotipo ofi
 | Cold Platinum | #B9BABA | Bordes, estados neutros |
 | Sea Mist | #D1D3D3 | Divisores, superficies |
 | Foam White | #EEEFEF | Superficie principal |
+| Moss | #4F5948 | Datos, selección y acentos positivos |
+| Wine | #6B3037 | Error, atención y destrucción |
 
-Estados funcionales: musgo para datos, selección y estado correcto; `--pl-status-oxide: #9A554A` y `--pl-status-oxide-pale: #E5D3CF` para error, atención importante y acciones destructivas, siempre con texto. Comparaciones sin semántica segura usan Graphite. Space Grotesk para títulos e Inter para cuerpo, alojadas localmente con licencias OFL; títulos 30–44px internos/38–64px home; cuerpo 14–16px. Espaciado base 24px, controles mínimo 44px, radios 6px. Sin sombras decorativas ni gradientes.
+Mineral/Mar ocupa la mayor parte de la interfaz. Moss y Wine son microacentos funcionales y siempre se acompañan con texto; las comparaciones sin semántica segura usan Graphite. Space Grotesk para títulos e Inter para cuerpo, alojadas localmente con licencias OFL; títulos 30–44px internos/38–64px home; cuerpo 14–16px. Espaciado base 24px, controles mínimo 44px, radios 6px. Sin sombras decorativas ni gradientes.
 
 ## Primitives y patrones
 
@@ -33,7 +35,7 @@ Sesión y privacidad se agrupan bajo Opciones. La etiqueta DEMO es discreta; rev
 
 Dialog usa HTML dialog/showModal: foco modal, tabulación contenida, Escape, botón Cerrar y retorno de foco al disparador. Está etiquetado por título. Export y confirmación de transformaciones destructivas reutilizan el mismo patrón. Loading/error/toasts usan status/alert y aria-live; botones ocupados deshabilitados. Siempre usar label o aria-label en Input/Select.
 
-DashboardRenderer y estados de widgets reutilizan las mismas primitives; no hay un segundo juego de EmptyState/ErrorState. ECharts mantiene aria/decal, ResizeObserver y alternativa de tabla de los mismos puntos. Comparaciones muestran flecha, signo, porcentaje y texto. Los gráficos usan verde musgo: #3F4D3B, #596B52, #75866C, #98A590 y #BEC6B8. Forecast distingue historial oscuro y futuro discontinuo; no dibuja intervalos inexistentes.
+DashboardRenderer y estados de widgets reutilizan las mismas primitives; no hay un segundo juego de EmptyState/ErrorState. ECharts mantiene aria/decal, ResizeObserver y alternativa de tabla de los mismos puntos. Comparaciones muestran flecha, signo, porcentaje y texto. Los gráficos usan Moss como acento y la escala mineral para contexto. Forecast distingue historial oscuro, futuro Moss discontinuo y rango Platinum; no dibuja intervalos inexistentes.
 
 Responsive: shell máximo 1280px; lectura/preparación máximo 960px; padding 40/24/20px; columnas y filtros se apilan en móvil. Tabla con scroll local. KPIs en una fila flexible en desktop, dos columnas en tablet y una en móvil. Todos los controles conservan foco visible; spinner y scroll respetan reduced-motion.
 
@@ -43,7 +45,7 @@ Preparación distingue Ajustes recomendados, Necesita tu atención y Opciones av
 
 Nota de vigencia: la descripción de base mensual sin intervalos que sigue corresponde al diseño inicial. F5 ya implementó selección de modelos y rangos empíricos del 80 % cuando hay evidencia suficiente; consultar [estado actual — F5](knowledge/CURRENT_STATE.md) antes de cambiar forecast. La verificación al final es histórica, no una comprobación de la sesión actual.
 
-Comparte cabecera, estilos, fuentes, controles y EChartsBase. Resultados integra «Qué podría pasar después» y crea una primera estimación si los datos son compatibles; en caso contrario explica el límite. Conserva la sesión preparada. Los resultados muestran período observado, horizonte, tabla alternativa y una limitación breve; evaluación histórica y metodología quedan dentro de ¿Cómo se calculó?. Cuando no hay predicción, una línea discreta y Ver por qué reemplazan la sección amplia. La base mensual repite el mismo mes del año anterior y no ofrece intervalos ni certezas.
+Comparte cabecera, estilos, fuentes, controles y EChartsBase. Resultados integra «Qué podría pasar después» y crea automáticamente una estimación si los datos son compatibles; no muestra selector de variable, horizonte ni botón de creación. La vista standalone conserva esos controles. Los resultados muestran período observado, horizonte, tabla alternativa y una limitación breve; evaluación histórica y metodología quedan dentro de ¿Cómo se calculó?. Cuando no hay predicción, una línea discreta y Ver por qué reemplazan la sección amplia.
 
 ## Verificación
 

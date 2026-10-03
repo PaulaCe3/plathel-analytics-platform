@@ -1,5 +1,4 @@
 "use client";
-import { HomeIcon } from "@/components/home-sections";
 import { t } from "@/lib/i18n";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -23,8 +22,8 @@ export function DemoSelector() {
   const kinds = ["retail", "services", "hospitality"];
   return <section id="demos" tabIndex={-1} className="home-section" aria-labelledby="demos-title" aria-busy={busy}>
     <h2 id="demos-title">Elegí una demostración</h2>
-    <div className="home-demo-grid">{kinds.map(kind=>{const demo=demos.find(d=>d.id === (kind==="retail"?"retail_forecast_demo":`${kind}_demo`));return <article key={kind} className="home-demo-card"><HomeIcon kind={kind}/><h3>{t(`home.${kind}`)}</h3><p>{t(`home.${kind}Desc`)}</p><button disabled={busy || !demo} onClick={()=>demo && openDemo(demo.id)}>{active === demo?.id && busy ? "Preparando la demostración…" : "Explorar demo"} <span aria-hidden="true">→</span></button></article>;})}</div>
-    {busy && <div className="home-demo-progress" role="status" aria-live="polite"><strong>Preparando la demostración</strong><ul><li>✓ Datos preparados</li><li>✓ Análisis generado</li><li>○ Preparando resultados</li></ul></div>}
+    <div className="home-demo-grid">{kinds.map((kind,index)=>{const demo=demos.find(d=>d.id === (kind==="retail"?"retail_forecast_demo":`${kind}_demo`));return <article key={kind} className="home-demo-card"><span className="home-demo-number" aria-hidden="true">0{index+1}</span><h3>{t(`home.${kind}`)}</h3><p>{t(`home.${kind}Desc`)}</p><button disabled={busy || !demo} onClick={()=>demo && openDemo(demo.id)}>{active === demo?.id && busy ? "Preparando…" : "Explorar demo"} <span aria-hidden="true">→</span></button></article>;})}</div>
+    {busy && <div className="home-demo-progress" role="status" aria-live="polite"><span className="home-spinner" aria-hidden="true"/><div><strong>Preparando tu demostración</strong><p>Estamos analizando la información y generando los resultados.</p></div></div>}
     <p role={failed ? "alert" : "status"} className={`home-feedback ${failed ? "home-error" : ""}`}>{status}</p>
   </section>;
 }
