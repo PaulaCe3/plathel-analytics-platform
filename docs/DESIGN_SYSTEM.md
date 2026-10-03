@@ -29,7 +29,7 @@ Mineral/Mar ocupa la mayor parte de la interfaz. Moss y Wine son microacentos fu
 
 `packages/ui/src/primitives.tsx` (reexportado por BI): Button (primary/secondary/ghost/danger, busy/disabled), Card (sección con divisor), Input, Select, Status, Toast (info/success/error), SectionHeader, EmptyState, ErrorState con retry, LoadingState y Dialog.
 
-`packages/ui/src/product-header.tsx`: marca y navegación Datos → Resultados → Dashboard; `product-navigation.tsx`: adaptación y Stepper. Columnas y preparación pertenecen al primer momento; pasos futuros no son enlaces que permitan saltar validaciones. Los completados/actuales llevan texto accesible, sin depender del color.
+`packages/ui/src/product-header.tsx`: marca y navegación Demo → Resultados → Dashboard; `product-navigation.tsx`: adaptación y Stepper. Columnas y preparación pertenecen al primer momento; pasos futuros no son enlaces que permitan saltar validaciones. Los completados/actuales llevan texto accesible, sin depender del color.
 
 Sesión y privacidad se agrupan bajo Opciones. La etiqueta DEMO es discreta; revisar datos queda en Opciones. Filtros compactos, chips solo cuando están activos y Exportar junto al encabezado. Sobre estos datos permanece cerrado. Divisores limitados a cambios de jerarquía; controles interactivos usan cursor, foco, hover y selección distinguible por borde además del color.
 
