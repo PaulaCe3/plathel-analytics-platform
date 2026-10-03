@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import "./globals.css";
 import "../../../../../packages/ui/src/plathel.css";
+import "./visual-polish.css";
 
 const space=localFont({src:"../../../../../packages/ui/fonts/spacegrotesk.ttf",variable:"--font-space",display:"swap"});
 const inter=localFont({src:"../../../../../packages/ui/fonts/inter.ttf",variable:"--font-inter",display:"swap"});

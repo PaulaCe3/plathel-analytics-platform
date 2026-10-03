@@ -35,7 +35,7 @@ Sesión y privacidad se agrupan bajo Opciones. La etiqueta DEMO es discreta; rev
 
 Dialog usa HTML dialog/showModal: foco modal, tabulación contenida, Escape, botón Cerrar y retorno de foco al disparador. Está etiquetado por título. Export y confirmación de transformaciones destructivas reutilizan el mismo patrón. Loading/error/toasts usan status/alert y aria-live; botones ocupados deshabilitados. Siempre usar label o aria-label en Input/Select.
 
-DashboardRenderer y estados de widgets reutilizan las mismas primitives; no hay un segundo juego de EmptyState/ErrorState. ECharts mantiene aria/decal, ResizeObserver y alternativa de tabla de los mismos puntos. Comparaciones muestran flecha, signo, porcentaje y texto. Los gráficos usan Moss como acento y la escala mineral para contexto. Forecast distingue historial oscuro, futuro Moss discontinuo y rango Platinum; no dibuja intervalos inexistentes.
+DashboardRenderer y estados de widgets reutilizan las mismas primitives; no hay un segundo juego de EmptyState/ErrorState. ECharts mantiene descripción aria, ResizeObserver y alternativa de tabla de los mismos puntos; no usa tramas decorativas. Comparaciones muestran flecha, signo, porcentaje y texto. Las series temporales usan Moss y las barras Graphite/Basalt, con grilla tenue y formato numérico es-AR. Forecast distingue historial oscuro, futuro Moss discontinuo y rango Platinum; no dibuja intervalos inexistentes.
 
 Responsive: shell máximo 1280px; lectura/preparación máximo 960px; padding 40/24/20px; columnas y filtros se apilan en móvil. Tabla con scroll local. KPIs en una fila flexible en desktop, dos columnas en tablet y una en móvil. Todos los controles conservan foco visible; spinner y scroll respetan reduced-motion.
 
@@ -45,7 +45,7 @@ Preparación distingue Ajustes recomendados, Necesita tu atención y Opciones av
 
 Nota de vigencia: la descripción de base mensual sin intervalos que sigue corresponde al diseño inicial. F5 ya implementó selección de modelos y rangos empíricos del 80 % cuando hay evidencia suficiente; consultar [estado actual — F5](knowledge/CURRENT_STATE.md) antes de cambiar forecast. La verificación al final es histórica, no una comprobación de la sesión actual.
 
-Comparte cabecera, estilos, fuentes, controles y EChartsBase. Resultados integra «Qué podría pasar después» y crea automáticamente una estimación si los datos son compatibles; no muestra selector de variable, horizonte ni botón de creación. La vista standalone conserva esos controles. Los resultados muestran período observado, horizonte, tabla alternativa y una limitación breve; evaluación histórica y metodología quedan dentro de ¿Cómo se calculó?. Cuando no hay predicción, una línea discreta y Ver por qué reemplazan la sección amplia.
+Comparte cabecera, estilos, fuentes, controles y EChartsBase. Resultados integra «Qué podría pasar» como un momento editorial Deep Rock y crea automáticamente una estimación si los datos son compatibles; no muestra selector de variable, horizonte, botón de creación ni detalles técnicos. La vista standalone conserva esos controles. Los resultados muestran período observado, horizonte, tabla alternativa y una limitación breve. Cuando no hay predicción, una línea discreta y Ver por qué reemplazan la sección amplia.
 
 ## Verificación
 
