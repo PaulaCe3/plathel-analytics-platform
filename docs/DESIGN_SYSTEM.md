@@ -23,7 +23,7 @@ Alcance: Análisis y Predicciones. Wordmark textual temporal: no hay isotipo ofi
 | Moss | #4F5948 | Datos, selección y acentos positivos |
 | Wine | #6B3037 | Error, atención y destrucción |
 
-Mineral/Mar ocupa la mayor parte de la interfaz. Moss y Wine son microacentos funcionales y siempre se acompañan con texto; las comparaciones sin semántica segura usan Graphite. Space Grotesk para títulos e Inter para cuerpo, alojadas localmente con licencias OFL; títulos 30–44px internos/38–64px home; cuerpo 14–16px. Espaciado base 24px, controles mínimo 44px, radios 6px. Sin sombras decorativas ni gradientes.
+Mineral/Mar ocupa la mayor parte de la interfaz. Moss y Wine son microacentos funcionales y siempre se acompañan con texto; las comparaciones sin semántica segura usan Graphite. Space Grotesk para títulos e Inter para cuerpo, alojadas localmente con licencias OFL; títulos editoriales pueden ampliar su escala según la superficie y el cuerpo permanece en 14–16px. Espaciado base 24px, controles mínimo 44px y radios contenidos. La profundidad se construye con alternancia de masas claras y oscuras, vacío, divisores y gradientes minerales casi imperceptibles; sin sombras decorativas.
 
 ## Primitives y patrones
 
