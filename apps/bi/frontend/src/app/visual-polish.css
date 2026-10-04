@@ -22,22 +22,6 @@
 .pl-stepper li{font-family:var(--font-inter),sans-serif;letter-spacing:.015em}
 .pl-stepper li>span:first-child{font-variant-numeric:tabular-nums;letter-spacing:.08em}
 
-.pl-data-home>.pl-page-heading{background:radial-gradient(circle at 82% 18%,rgb(95 93 92/.24),transparent 33%),var(--pl-rock);box-shadow:0 0 0 100vmax var(--pl-rock);clip-path:inset(0 -100vmax);color:var(--pl-foam);margin-bottom:0;padding:clamp(72px,11vw,142px) 0 clamp(78px,10vw,128px)}
-.pl-data-home>.pl-page-heading:before{content:"DATA · AI · AUTOMATION";display:block;color:var(--pl-platinum);font-size:10px;font-weight:600;letter-spacing:.22em;margin-bottom:clamp(42px,7vw,82px)}
-.pl-data-home>.pl-page-heading h1{font-family:var(--font-space),sans-serif;font-size:clamp(54px,8vw,102px);font-weight:500;letter-spacing:-.055em;line-height:.92;max-width:1000px}
-.pl-data-home>.pl-page-heading h1 span{color:var(--pl-moss)}
-.pl-data-home>.pl-page-heading p{color:var(--pl-platinum);font-size:clamp(16px,2vw,20px);line-height:1.65;margin-top:30px;max-width:700px}
-.pl-data-home>.home-section{margin-top:0;padding-top:clamp(58px,8vw,92px)}
-.home-section>h2{color:var(--pl-graphite);margin-bottom:34px}
-.home-demo-grid{border-top:1px solid var(--pl-platinum);grid-template-columns:repeat(12,minmax(0,1fr))}
-.home-demo-card{grid-column:span 4;min-height:310px;padding:30px 30px 34px 0}
-.home-demo-card+.home-demo-card{border-left:1px solid var(--pl-mist);padding-left:30px}
-.home-demo-card h3{font-family:var(--font-space),sans-serif;font-size:clamp(22px,2.4vw,30px);font-weight:500;letter-spacing:-.035em;margin-top:52px}
-.home-demo-card p{line-height:1.75}
-.home-demo-card button{border-top:1px solid transparent;margin-top:auto;width:100%}
-.home-demo-card:hover,.home-demo-card:focus-within{background:linear-gradient(180deg,rgb(209 211 211/.12),transparent);border-top-color:var(--pl-moss);color:var(--pl-rock)}
-.home-demo-note{margin-bottom:48px}
-
 .pl-reading-main{padding-bottom:0}
 .pl-reading-main .pl-page-heading{padding:clamp(44px,7vw,82px) 0 38px}
 .pl-reading-main .pl-page-heading:before{margin-bottom:30px}
@@ -77,9 +61,6 @@
 .pl-button--primary{background:var(--pl-rock)}
 
 @media(max-width:760px){
- .home-demo-card{grid-column:1/-1;min-height:0;padding:28px 0}
- .home-demo-card+.home-demo-card{border-left:0;padding-left:0}
- .home-demo-card h3{margin-top:22px}
  .pl-reading-main .pl-executive-findings{grid-template-columns:1fr}
  .pl-reading-main .pl-executive-findings li{min-height:0;padding:24px 0}
  .pl-reading-main .pl-executive-findings li+li{border-left:0;padding-left:0}
